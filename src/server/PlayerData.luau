@@ -58,6 +58,7 @@ local function defaultData()
 		Vehicles = {}, -- cars bought in the phone: [vehicleId] = true
 		Home = HomeConfig.StartingHome, -- the home you live in (see HomeConfig)
 		Homes = { [HomeConfig.StartingHome] = true }, -- homes you own: [homeId] = true
+		TutorialDone = false, -- finished or skipped the how-to-play tutorial
 	}
 end
 
@@ -89,6 +90,8 @@ local function sanitize(raw)
 		end
 	end
 	data.Billionaire = raw.Billionaire == true
+	-- Older saves that already bought something don't need the tutorial
+	data.TutorialDone = raw.TutorialDone == true or next(data.Owned) ~= nil
 	if type(raw.Portfolio) == "table" then
 		for assetId, holding in raw.Portfolio do
 			if MarketConfig.AssetsById[assetId] and type(holding) == "table"
@@ -182,6 +185,7 @@ function PlayerData.save(player: Player, data): boolean
 		Vehicles = data.Vehicles,
 		Home = data.Home,
 		Homes = data.Homes,
+		TutorialDone = data.TutorialDone,
 	}
 
 	local ok, err = pcall(function()

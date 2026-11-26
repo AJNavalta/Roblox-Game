@@ -22,6 +22,7 @@ local Homes = require(script.Parent.Homes)
 local Market = require(script.Parent.Market)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
+local Tutorial = require(script.Parent.Tutorial)
 local Tycoon = require(script.Parent.Tycoon)
 
 -- The server uses this to send pop-up messages to a player's screen.
@@ -32,6 +33,7 @@ Tycoon.init(notifyEvent)
 Market.init(Tycoon, notifyEvent) -- the phone's stock market, crypto and NFTs
 Garage.init(Tycoon) -- the phone's car shop
 Homes.init(Tycoon, notifyEvent) -- the laptop's Homes app: buy and move into homes
+Tutorial.init() -- how-to-play tutorial (remembers who finished it)
 DevTools.init(Tycoon, notifyEvent) -- testing cheat: /money for the developer only
 
 -- Build the world -----------------------------------------------------------
@@ -125,6 +127,7 @@ local function chooseSlot(player: Player, slot: number)
 		return { Ok = false } -- they left while we were loading
 	end
 	loadedData[player] = data
+	Tutorial.onLoaded(player, data)
 	player:SetAttribute("SaveSlot", slot)
 
 	if plot and not plot.Owner then
