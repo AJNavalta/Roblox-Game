@@ -247,3 +247,38 @@ CollectionService:GetInstanceAddedSignal("LotPrompt"):Connect(watchPrompt)
 for _, prompt in CollectionService:GetTagged("LotPrompt") do
 	watchPrompt(prompt)
 end
+
+-- 🛠️ Dev money buttons (only shown to the developer, see src/server/DevTools.luau) --
+local function showDevButtons()
+	if gui:FindFirstChild("DevButtons") or not player:GetAttribute("IsDeveloper") then
+		return
+	end
+	local devRequest = ReplicatedStorage:WaitForChild("DevRequest") :: RemoteEvent
+	local holder = Instance.new("Frame")
+	holder.Name = "DevButtons"
+	holder.AnchorPoint = Vector2.new(0, 0)
+	holder.Position = UDim2.new(0.5, 70, 0, 50)
+	holder.Size = UDim2.fromOffset(210, 24)
+	holder.BackgroundTransparency = 1
+	holder.Parent = gui
+	local list = Instance.new("UIListLayout")
+	list.FillDirection = Enum.FillDirection.Horizontal
+	list.Padding = UDim.new(0, 6)
+	list.Parent = holder
+	for _, amount in { 1_000_000, 1_000_000_000 } do
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.fromOffset(100, 24)
+		button.BackgroundColor3 = Color3.fromRGB(150, 60, 200)
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.Font = Enum.Font.GothamBold
+		button.TextSize = 13
+		button.Text = "🛠️ +" .. Format.money(amount)
+		button.Parent = holder
+		corner(button, 12)
+		button.Activated:Connect(function()
+			devRequest:FireServer("money", amount)
+		end)
+	end
+end
+player:GetAttributeChangedSignal("IsDeveloper"):Connect(showDevButtons)
+showDevButtons()

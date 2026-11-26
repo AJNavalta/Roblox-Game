@@ -97,6 +97,8 @@ DataStores only work in a published place:
 
 If saving is off you'll see a red pop-up when you join. The game still works, it just won't remember you.
 
+> Tip: need money to test with? Type `/money 1m` in chat (works with `500`, `25k`, `2.5b`...) or click the purple **🛠️ +$1.00M / +$1.00B** buttons under the cash bar. This only works for the developer accounts listed at the top of `src/server/DevTools.luau` (Monsky) and in Studio tests. Nobody else can use it.
+
 > Tip: to wipe everyone's progress while testing, change `DataStoreName` in `src/shared/Config.luau` (e.g. `_v1` → `_v2`).
 
 ### Trying a pull request before you merge it
@@ -177,6 +179,7 @@ src/
     PlayerData.luau         DataStore load/save
     Market.luau             stock prices, buying and selling (server only)
     Garage.luau             buying cars, spawning and driving them
+    DevTools.luau           /money testing cheat, developer only
   client/                   -> StarterPlayerScripts.Client
     Hud.client.luau         the slim bar at the top (cash, income, progress) and pop-ups
     Phone.client.luau       the phone, Bank, Market, Cars and the laptop desktop

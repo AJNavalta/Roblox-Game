@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local CityBuilder = require(script.Parent.CityBuilder)
 local Customers = require(script.Parent.Customers)
+local DevTools = require(script.Parent.DevTools)
 local Garage = require(script.Parent.Garage)
 local Homes = require(script.Parent.Homes)
 local Market = require(script.Parent.Market)
@@ -31,6 +32,7 @@ Tycoon.init(notifyEvent)
 Market.init(Tycoon, notifyEvent) -- the phone's stock market, crypto and NFTs
 Garage.init(Tycoon) -- the phone's car shop
 Homes.init(Tycoon, notifyEvent) -- the laptop's Homes app: buy and move into homes
+DevTools.init(Tycoon, notifyEvent) -- testing cheat: /money for the developer only
 
 -- Build the world -----------------------------------------------------------
 
