@@ -25,6 +25,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local ItemModels = require(script.Parent.ItemModels)
 
 local PlotBuilder = {}
 
@@ -243,6 +244,19 @@ function PlotBuilder.build(index: number)
 	return plot
 end
 
+-- World CFrame of the centre of an item's slot, on the ground, facing the
+-- road (+Z). `info` is an entry from Config.ItemsById.
+function PlotBuilder.getSlotCFrame(plot, info): CFrame
+	local x = slotX[info.StageIndex][info.ItemIndex]
+	local z = slotZ[info.StageIndex][info.ItemIndex]
+	return plot.Origin * CFrame.new(x, 1, z - 3)
+end
+
+-- Local X of the gap to the right of a slot (a clear walkway between columns).
+function PlotBuilder.getWalkwayX(info): number
+	return slotX[info.StageIndex][info.ItemIndex] + SLOT_SPACING / 2
+end
+
 -- Shows (or replaces) the building for an item at the given level.
 -- `info` is an entry from Config.ItemsById.
 function PlotBuilder.setItemVisual(plot, info, level: number)
@@ -258,16 +272,27 @@ function PlotBuilder.setItemVisual(plot, info, level: number)
 	local stage = info.Stage
 	local x = slotX[info.StageIndex][info.ItemIndex]
 	local z = slotZ[info.StageIndex][info.ItemIndex]
-	local height = (item.Height or (4 + info.ItemIndex + info.StageIndex * 2)) + (level - 1) * 3
+	local height, labelAnchor
 
-	local block = makePart({
-		Name = item.Id,
-		Size = if item.Boost then Vector3.new(8, height, 8) else Vector3.new(14, height, 10),
-		CFrame = plot.Origin * CFrame.new(x, 1 + height / 2, z - 3),
-		Color = stage.Color,
-		Material = if item.Boost then Enum.Material.Neon else Enum.Material.SmoothPlastic,
-		Parent = plot.Visuals,
-	})
+	if ItemModels.has(item.Id) then
+		-- A hand-made model (see ItemModels.luau)
+		local model
+		model, height = ItemModels.build(item.Id, PlotBuilder.getSlotCFrame(plot, info), level)
+		model.Name = item.Id
+		model.Parent = plot.Visuals
+		labelAnchor = model.PrimaryPart
+	else
+		-- A plain coloured block that gets taller with each level
+		height = (item.Height or (4 + info.ItemIndex + info.StageIndex * 2)) + (level - 1) * 3
+		labelAnchor = makePart({
+			Name = item.Id,
+			Size = if item.Boost then Vector3.new(8, height, 8) else Vector3.new(14, height, 10),
+			CFrame = plot.Origin * CFrame.new(x, 1 + height / 2, z - 3),
+			Color = stage.Color,
+			Material = if item.Boost then Enum.Material.Neon else Enum.Material.SmoothPlastic,
+			Parent = plot.Visuals,
+		})
+	end
 
 	local title = item.Name
 	if (item.MaxLevel or 1) > 1 then
@@ -280,7 +305,7 @@ function PlotBuilder.setItemVisual(plot, info, level: number)
 	if item.Boost then
 		table.insert(perks, ("x%g %s income"):format(item.Boost, stage.Name))
 	end
-	makeLabel(block, title .. "\n" .. table.concat(perks, "  "), height / 2 + 2.5, Color3.new(1, 1, 1), 13, 3.5)
+	makeLabel(labelAnchor, title .. "\n" .. table.concat(perks, "  "), height / 2 + 2.5, Color3.new(1, 1, 1), 13, 3.5)
 end
 
 -- Gives the lot to `player`, or frees it up again when `player` is nil.
