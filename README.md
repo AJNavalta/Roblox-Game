@@ -24,9 +24,11 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a lot, start with
    * **Boost** items (glowing blocks) multiply the income of their whole business.
    * You don't need to buy everything in a business to open the next one.
 
-5. **Your phone** 📱 sits in the bottom-right corner (click it or press **P**). It slides up with four apps:
+5. **Your phone** 📱 sits in the bottom-right corner (click it or press **P**). It slides up with five apps:
    * **🏦 Bank** shows your cash, money waiting at the collector, your investments, profit or loss, and net worth.
    * **📈 Stocks**, **🪙 Crypto** and **🖼️ NFTs** open the big **Billionaire Exchange** window. Invest in 30 made-up companies, parody crypto like **BitBucks**, or NFT collections. Prices move every few seconds, sometimes with big news jumps. Type an amount (like `500` or `2.5k`) and press **BUY**. Press **SELL** or **SELL ALL** any time to cash out. The **My Portfolio** tab shows everything you own and your profit.
+   * **🚗 Cars** is the car shop: Bicycle, Moped, Sedan, Pickup, Van, Sports Car, Limo and a Gold Hypercar. Buy one once and keep it forever. Press **SPAWN** and it appears on your driveway (or in front of you). Sit in it and drive with **W A S D**, jump to get out.
+6. **💻 Laptop:** walk up to the laptop in your house and use it to open the same apps in a big desktop view. Walk away or press **Log off** to close it.
 
 Your progress saves automatically, including your investments. With smart play it takes roughly 75 minutes to hit $1B.
 
@@ -117,6 +119,7 @@ src/
     Progression.luau        rules: what can I buy, what unlocks, income math
     Format.luau             turns 2500000 into "$2.50M"
     MarketConfig.luau       the 30 stocks, crypto coins and NFTs, and how prices move
+    VehicleConfig.luau      the cars in the car shop: prices, speeds, sizes
   server/                   -> ServerScriptService.Server
     Main.server.luau        starting point: join/leave, claiming lots, loops
     Tycoon.luau             buying, upgrading, collecting cash
@@ -126,9 +129,10 @@ src/
     Customers.luau          NPC customers who visit your lemonade stands
     PlayerData.luau         DataStore load/save
     Market.luau             stock prices, buying and selling (server only)
+    Garage.luau             buying cars, spawning and driving them
   client/                   -> StarterPlayerScripts.Client
     Hud.client.luau         cash display, income, progress bar, pop-ups
-    Phone.client.luau       the phone, Bank app and Market window
+    Phone.client.luau       the phone, Bank, Market, Cars and the laptop desktop
 ```
 
 File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` becomes a **LocalScript**, and plain `.luau` becomes a **ModuleScript**.

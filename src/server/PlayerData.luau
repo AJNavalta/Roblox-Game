@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local MarketConfig = require(ReplicatedStorage.Shared.MarketConfig)
+local VehicleConfig = require(ReplicatedStorage.Shared.VehicleConfig)
 
 local PlayerData = {}
 
@@ -43,6 +44,7 @@ local function defaultData()
 		Owned = {},
 		Billionaire = false,
 		Portfolio = {}, -- stocks, crypto and NFTs: [assetId] = { Shares, Cost }
+		Vehicles = {}, -- cars bought in the phone: [vehicleId] = true
 	}
 end
 
@@ -81,6 +83,13 @@ local function sanitize(raw)
 			then
 				local cost = if type(holding.Cost) == "number" and holding.Cost >= 0 then holding.Cost else 0
 				data.Portfolio[assetId] = { Shares = holding.Shares, Cost = cost }
+			end
+		end
+	end
+	if type(raw.Vehicles) == "table" then
+		for vehicleId, owned in raw.Vehicles do
+			if VehicleConfig.ById[vehicleId] and owned == true then
+				data.Vehicles[vehicleId] = true
 			end
 		end
 	end
@@ -125,6 +134,7 @@ function PlayerData.save(player: Player, data): boolean
 		Owned = data.Owned,
 		Billionaire = data.Billionaire,
 		Portfolio = data.Portfolio,
+		Vehicles = data.Vehicles,
 	}
 
 	local ok, err = pcall(function()
