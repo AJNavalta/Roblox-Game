@@ -60,18 +60,19 @@ Config.Stages = {
 		Name = "Lemonade Stand",
 		Color = Color3.fromRGB(255, 221, 87),
 		Items = {
-			{ Id = "lemon_pitcher", Name = "Lemonade Pitcher", Cost = 0, Income = 1, MaxLevel = 5, UpgradeCost = 15 },
-			{ Id = "lemon_table", Name = "Folding Table", Cost = 25, Income = 2, Requires = { "lemon_pitcher" } },
+			-- Everything here is part of ONE stand on your driveway that grows as you upgrade it.
+			{ Id = "lemon_pitcher", Name = "Lemonade Tank", Cost = 0, Income = 1, MaxLevel = 5, UpgradeCost = 15 },
+			{ Id = "lemon_table", Name = "Wooden Counter", Cost = 25, Income = 2, Requires = { "lemon_pitcher" } },
 			{ Id = "lemon_tree", Name = "Backyard Lemon Tree", Cost = 60, Income = 3, MaxLevel = 3, Requires = { "lemon_pitcher" } },
-			{ Id = "lemon_sign", Name = "Hand-Painted Sign", Cost = 80, Income = 4, Requires = { "lemon_table" } },
+			{ Id = "lemon_sign", Name = "Better Sign", Cost = 80, Income = 4, MaxLevel = 3, Requires = { "lemon_table" } },
 			{ Id = "lemon_cooler", Name = "Ice Cooler", Cost = 220, Income = 8, Requires = { "lemon_table" } },
 			{ Id = "lemon_recipe", Name = "Grandma's Secret Recipe", Cost = 400, Income = 0, Boost = 1.5, Requires = { "lemon_tree" } },
-			{ Id = "lemon_stand2", Name = "Second Stand", Cost = 550, Income = 15, Requires = { "lemon_sign" } },
+			{ Id = "lemon_stand2", Name = "Striped Canopy", Cost = 550, Income = 15, Requires = { "lemon_sign" } },
 			-- Pick one: a big boost to everything, or a big flat income
-			{ Id = "lemon_pink", Name = "Pink Lemonade", Cost = 700, Income = 0, Boost = 1.75, Choice = "specialty", Requires = { "lemon_recipe" } },
+			{ Id = "lemon_pink", Name = "Pink Lemonade Tank", Cost = 700, Income = 0, Boost = 1.75, Choice = "specialty", Requires = { "lemon_recipe" } },
 			{ Id = "lemon_slushie", Name = "Slushie Machine", Cost = 700, Income = 35, Choice = "specialty", Requires = { "lemon_cooler" } },
-			{ Id = "lemon_bike", Name = "Lemonade Bike Cart", Cost = 900, Income = 22, MaxLevel = 3, Requires = { "lemon_cooler" } },
-			{ Id = "lemon_truck", Name = "Lemonade Food Truck", Cost = 2_000, Income = 45, Requires = { "lemon_stand2", "lemon_bike" } },
+			{ Id = "lemon_bike", Name = "Better Advertising", Cost = 900, Income = 22, MaxLevel = 3, Requires = { "lemon_sign" } },
+			{ Id = "lemon_truck", Name = "Party Lights & Speakers", Cost = 2_000, Income = 45, Requires = { "lemon_stand2", "lemon_bike" } },
 		},
 	},
 	{

@@ -1,6 +1,6 @@
 # Become a Billionaire Tycoon
 
-A Roblox progression tycoon set in **Billionaire City**. Claim a lot, start with a lemonade stand, and work your way up to a billion dollars:
+A Roblox progression tycoon set in **Billionaire City**. Claim a home, sell lemonade at the end of your driveway, and work your way up to a billion dollars:
 
 | # | Business | Unlocks when you own | Price range |
 |---|----------|----------------------|-------------|
@@ -15,6 +15,7 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a lot, start with
 **How to play:**
 
 1. You spawn in the plaza in the middle of the city. Walk to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
+   Each lot comes with a house (with a laptop workstation inside), a garage and a driveway. Your lemonade stand is at the end of the driveway, and every Lemonade upgrade (more tanks, a better sign, advertising, a canopy...) improves that one stand. Customers walk up, grab a cup and leave.
 2. Walk onto glowing buttons to buy things. **Green** = you can afford it, **red** = not yet, **grey** = you need to buy something else first (the button tells you what).
 3. Every item earns money per second, which piles up on your gold **Cash Collector** pad. Step on it to bank the money.
 4. It's not a straight line. You choose your path:
@@ -122,8 +123,9 @@ src/
     Tycoon.luau             buying, upgrading, collecting cash
     CityBuilder.luau        roads, plaza, street lights, skyline
     PlotBuilder.luau        the claimable lots and their buttons
-    ItemModels.luau         3D models for items (the lemonade stand props)
-    Customers.luau          NPC customers who visit your lemonade stands
+    HomeBuilder.luau        your house, garage, driveway and the laptop workstation
+    LemonadeStand.luau      the one lemonade stand that grows with every upgrade
+    Customers.luau          NPC customers who line up at your lemonade stand
     PlayerData.luau         DataStore load/save
     Market.luau             stock prices, buying and selling (server only)
   client/                   -> StarterPlayerScripts.Client
@@ -136,6 +138,6 @@ File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` b
 ## Ideas for next steps
 
 * More choices and upgrades in the later businesses, like the Lemonade Stand has.
-* Give the later businesses models like the Lemonade Stand has (add builders in `ItemModels.luau`), and customers of their own.
+* Give the later businesses real models and customers of their own, like the Lemonade Stand has.
 * Rebirth/prestige: reset progress for a permanent income multiplier.
 * Gamepasses like 2x cash, and sound effects when buying or collecting.

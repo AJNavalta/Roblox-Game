@@ -5,27 +5,28 @@
 	The city has two rows of lots facing a main avenue (see CityBuilder).
 	One lot, seen from above, with the avenue at the bottom:
 
-	    [ WOWVidia GPUs       ]   (farthest from the road)
+	    [ WOWVidia GPUs       ]   (backyard, farthest from the road)
 	    [ Dropshipping Empire ]
 	    [ Car Dealership      ]
 	    [ Clothing Brand      ]
-	    [ Lemonade Stand      ]   (3 rows, it has the most items)
-	   (Collector)  (Claim pad)
+	    [   house    | garage ]   (HomeBuilder)
+	    lemonade   path  stand  driveway
+	    buttons    (claim pad)
 	  ======== main avenue ========
 
-	Every item gets a slot. A glowing BUY BUTTON sits in front of the slot,
-	and once bought, a building block appears in it. Upgrading makes the
-	block taller.
-
-	Want fancier buildings? Later you can swap the block in setItemVisual
-	for a Model you build in Studio (e.g. stored in ServerStorage).
+	Your home is at the front. The Lemonade Stand is ONE stand by the
+	driveway that upgrades in place (LemonadeStand.luau); its buttons are on
+	the front lawn. The later businesses are in the backyard: each item gets
+	a slot with a glowing BUY BUTTON in front of it, and once bought, a
+	building block appears in the slot. Upgrading makes the block taller.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
-local ItemModels = require(script.Parent.ItemModels)
+local HomeBuilder = require(script.Parent.HomeBuilder)
+local LemonadeStand = require(script.Parent.LemonadeStand)
 
 local PlotBuilder = {}
 
@@ -38,17 +39,32 @@ local SLOTS_PER_ROW = 5
 local SLOT_SPACING = 27
 local ROW_SPACING = 26
 local ZONE_GAP = 8
-local FIRST_ROW_Z = -36 -- local Z: 0 is the lot's front edge, negative is deeper in
-local CLAIM_Z = -12
+local FIRST_ZONE_Z = -100 -- local Z: 0 is the lot's front edge, negative is deeper in (behind the house)
+local CLAIM_Z = -10
+
+-- Lemonade buttons sit in a grid on the front lawn, left of the path
+local LAWN_COLUMNS = { -64, -48, -32 }
+local LAWN_FIRST_ROW_Z = -9
+local LAWN_ROW_SPACING = 9
 
 -- Work out where every item's slot goes, once.
+-- The Lemonade Stand (stage 1) has no slots: everything goes on one stand.
 local slotZ = {} -- [stageIndex][itemIndex] = z
 local slotX = {}
+local buttonPos = {} -- [stageIndex][itemIndex] = { x, z } of the buy button
 local zoneBounds = {} -- [stageIndex] = { Front = z, Back = z }
 do
-	local z = FIRST_ROW_Z
-	for stageIndex, stage in Config.Stages do
-		slotZ[stageIndex], slotX[stageIndex] = {}, {}
+	slotX[1], slotZ[1], buttonPos[1] = {}, {}, {}
+	for itemIndex = 1, #Config.Stages[1].Items do
+		local column = (itemIndex - 1) % #LAWN_COLUMNS + 1
+		local row = math.floor((itemIndex - 1) / #LAWN_COLUMNS)
+		buttonPos[1][itemIndex] = { LAWN_COLUMNS[column], LAWN_FIRST_ROW_Z - row * LAWN_ROW_SPACING }
+	end
+
+	local z = FIRST_ZONE_Z
+	for stageIndex = 2, #Config.Stages do
+		local stage = Config.Stages[stageIndex]
+		slotZ[stageIndex], slotX[stageIndex], buttonPos[stageIndex] = {}, {}, {}
 		local rows = math.ceil(#stage.Items / SLOTS_PER_ROW)
 		zoneBounds[stageIndex] = { Front = z + 12, Back = z - (rows - 1) * ROW_SPACING - 11 }
 		for itemIndex = 1, #stage.Items do
@@ -57,6 +73,7 @@ do
 			local itemsInRow = math.min(SLOTS_PER_ROW, #stage.Items - row * SLOTS_PER_ROW)
 			slotX[stageIndex][itemIndex] = (column - (itemsInRow - 1) / 2) * SLOT_SPACING
 			slotZ[stageIndex][itemIndex] = z - row * ROW_SPACING
+			buttonPos[stageIndex][itemIndex] = { slotX[stageIndex][itemIndex], slotZ[stageIndex][itemIndex] + 7 }
 		end
 		z -= rows * ROW_SPACING + ZONE_GAP
 	end
@@ -141,7 +158,8 @@ function PlotBuilder.build(index: number)
 		Origin = origin,
 		Model = model,
 		Owner = nil :: Player?,
-		SpawnCFrame = at(0, 4, CLAIM_Z),
+		SpawnCFrame = at(HomeBuilder.DOOR_X, 4, -24), -- on the front path
+		Levels = {}, -- [itemId] = level, for what's shown on this lot
 		Buttons = {}, -- [itemId] = { Part = BasePart, Label = TextLabel }
 		StageLabels = {}, -- [stageIndex] = TextLabel
 		Visuals = Instance.new("Folder"),
@@ -181,11 +199,16 @@ function PlotBuilder.build(index: number)
 		Parent = model,
 	})
 
+	-- The house, driveway, garage, and the laptop workstation inside
+	local home = HomeBuilder.build(model, at)
+	plot.Laptop = home.Laptop
+	plot.CarSpawn = home.CarSpawn
+
 	-- Claim pad: step on it to make this lot yours
 	local claimPad = makePart({
 		Name = "ClaimPad",
-		Size = Vector3.new(12, 0.6, 12),
-		CFrame = at(0, 1.3, CLAIM_Z),
+		Size = Vector3.new(10, 0.6, 10),
+		CFrame = at(HomeBuilder.DOOR_X, 1.3, CLAIM_Z),
 		Material = Enum.Material.Neon,
 		Parent = model,
 	})
@@ -195,8 +218,8 @@ function PlotBuilder.build(index: number)
 	-- Cash collector
 	local collector = makePart({
 		Name = "Collector",
-		Size = Vector3.new(10, 1, 10),
-		CFrame = at(-40, 1.5, CLAIM_Z),
+		Size = Vector3.new(8, 1, 8),
+		CFrame = at(8, 1.5, CLAIM_Z),
 		Color = Color3.fromRGB(255, 200, 40),
 		Material = Enum.Material.Neon,
 		Parent = model,
@@ -204,8 +227,20 @@ function PlotBuilder.build(index: number)
 	plot.Collector = collector
 	plot.CollectorLabel = makeLabel(collector, "", 5, Color3.fromRGB(140, 255, 140), 12)
 
-	-- One coloured zone per business, with a sign and a hidden button per item
-	for stageIndex, stage in Config.Stages do
+	-- Lemonade: a sign post beside its buttons on the front lawn
+	local lemonade = Config.Stages[1]
+	local lemonadeSign = makePart({
+		Name = lemonade.Id .. "_Sign",
+		Size = Vector3.new(1, 6, 1),
+		CFrame = at(-PlotBuilder.LOT_WIDTH / 2 + 3, 4, -20),
+		Color = lemonade.Color,
+		Parent = model,
+	})
+	plot.StageLabels[1] = makeLabel(lemonadeSign, lemonade.Name, 6, lemonade.Color, 16, 4.5)
+
+	-- The other businesses: one coloured zone each in the backyard, with a sign
+	for stageIndex = 2, #Config.Stages do
+		local stage = Config.Stages[stageIndex]
 		local bounds = zoneBounds[stageIndex]
 		local zoneDepth = bounds.Front - bounds.Back
 		makePart({
@@ -225,14 +260,18 @@ function PlotBuilder.build(index: number)
 			Parent = model,
 		})
 		plot.StageLabels[stageIndex] = makeLabel(signPost, stage.Name, 7, stage.Color, 18, 5)
+	end
 
+	-- A hidden buy button for every item (Tycoon decides when to show them)
+	for stageIndex, stage in Config.Stages do
 		for itemIndex, item in stage.Items do
+			local pos = buttonPos[stageIndex][itemIndex]
 			local button = makePart({
 				Name = item.Id .. "_Button",
 				Size = Vector3.new(8, 1, 5),
-				CFrame = at(slotX[stageIndex][itemIndex], 1.5, slotZ[stageIndex][itemIndex] + 7),
+				CFrame = at(pos[1], 1.5, pos[2]),
 				Material = Enum.Material.Neon,
-				Parent = nil, -- the Tycoon module decides when to show it
+				Parent = nil,
 			})
 			local label = makeLabel(button, item.Name, 3.5, Color3.new(1, 1, 1), 11, 3.5)
 			plot.Buttons[item.Id] = { Part = button, Label = label }
@@ -244,22 +283,22 @@ function PlotBuilder.build(index: number)
 	return plot
 end
 
--- World CFrame of the centre of an item's slot, on the ground, facing the
--- road (+Z). `info` is an entry from Config.ItemsById.
-function PlotBuilder.getSlotCFrame(plot, info): CFrame
-	local x = slotX[info.StageIndex][info.ItemIndex]
-	local z = slotZ[info.StageIndex][info.ItemIndex]
-	return plot.Origin * CFrame.new(x, 1, z - 3)
-end
-
--- Local X of the gap to the right of a slot (a clear walkway between columns).
-function PlotBuilder.getWalkwayX(info): number
-	return slotX[info.StageIndex][info.ItemIndex] + SLOT_SPACING / 2
+-- CFrame of the lemonade stand's centre on the ground, facing the street.
+function PlotBuilder.getStandCFrame(plot): CFrame
+	return LemonadeStand.getCFrame(plot)
 end
 
 -- Shows (or replaces) the building for an item at the given level.
 -- `info` is an entry from Config.ItemsById.
 function PlotBuilder.setItemVisual(plot, info, level: number)
+	plot.Levels[info.Item.Id] = if level > 0 then level else nil
+
+	-- Every Lemonade item is part of the one stand, so rebuild the stand
+	if info.StageIndex == 1 then
+		LemonadeStand.rebuild(plot, plot.Levels)
+		return
+	end
+
 	local old = plot.Visuals:FindFirstChild(info.Item.Id)
 	if old then
 		old:Destroy()
@@ -272,27 +311,16 @@ function PlotBuilder.setItemVisual(plot, info, level: number)
 	local stage = info.Stage
 	local x = slotX[info.StageIndex][info.ItemIndex]
 	local z = slotZ[info.StageIndex][info.ItemIndex]
-	local height, labelAnchor
-
-	if ItemModels.has(item.Id) then
-		-- A hand-made model (see ItemModels.luau)
-		local model
-		model, height = ItemModels.build(item.Id, PlotBuilder.getSlotCFrame(plot, info), level)
-		model.Name = item.Id
-		model.Parent = plot.Visuals
-		labelAnchor = model.PrimaryPart
-	else
-		-- A plain coloured block that gets taller with each level
-		height = (item.Height or (4 + info.ItemIndex + info.StageIndex * 2)) + (level - 1) * 3
-		labelAnchor = makePart({
-			Name = item.Id,
-			Size = if item.Boost then Vector3.new(8, height, 8) else Vector3.new(14, height, 10),
-			CFrame = plot.Origin * CFrame.new(x, 1 + height / 2, z - 3),
-			Color = stage.Color,
-			Material = if item.Boost then Enum.Material.Neon else Enum.Material.SmoothPlastic,
-			Parent = plot.Visuals,
-		})
-	end
+	-- A plain coloured block that gets taller with each level
+	local height = (item.Height or (4 + info.ItemIndex + info.StageIndex * 2)) + (level - 1) * 3
+	local labelAnchor = makePart({
+		Name = item.Id,
+		Size = if item.Boost then Vector3.new(8, height, 8) else Vector3.new(14, height, 10),
+		CFrame = plot.Origin * CFrame.new(x, 1 + height / 2, z - 3),
+		Color = stage.Color,
+		Material = if item.Boost then Enum.Material.Neon else Enum.Material.SmoothPlastic,
+		Parent = plot.Visuals,
+	})
 
 	local title = item.Name
 	if (item.MaxLevel or 1) > 1 then
@@ -311,6 +339,10 @@ end
 -- Gives the lot to `player`, or frees it up again when `player` is nil.
 function PlotBuilder.setOwner(plot, player: Player?)
 	plot.Owner = player
+	-- Other code (the phone's car shop and laptop) reads these to find your lot
+	local ownerId = if player then player.UserId else 0
+	plot.Model:SetAttribute("OwnerUserId", ownerId)
+	plot.Laptop:SetAttribute("OwnerUserId", ownerId)
 	if player then
 		plot.ClaimPad.Color = Color3.fromRGB(245, 245, 245)
 		plot.ClaimLabel.Text = player.DisplayName .. "'s Empire"
@@ -322,6 +354,7 @@ function PlotBuilder.setOwner(plot, player: Player?)
 		plot.ClaimLabel.TextColor3 = Color3.fromRGB(150, 220, 255)
 		plot.Model.Name = "Lot" .. plot.Index
 		plot.Visuals:ClearAllChildren()
+		plot.Levels = {}
 		for _, button in plot.Buttons do
 			button.Part.Parent = nil
 		end
