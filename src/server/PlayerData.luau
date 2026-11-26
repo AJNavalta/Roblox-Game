@@ -58,6 +58,12 @@ local function defaultData()
 		Vehicles = {}, -- cars bought in the phone: [vehicleId] = true
 		Home = HomeConfig.StartingHome, -- the home you live in (see HomeConfig)
 		Homes = { [HomeConfig.StartingHome] = true }, -- homes you own: [homeId] = true
+		LastSpin = 0, -- 🎡 os.time() of the last hourly spin (see Rewards.luau)
+		LastDaily = 0, -- 🎁 os.time() of the last daily reward
+		DailyStreak = 0, -- 🎁 days in a row
+		Receipts = {}, -- 💰 Robux purchase IDs already paid out
+		TotalEarned = 0, -- 🏆 all cash ever earned (for milestone badges)
+		Milestones = {}, -- 🏆 badges unlocked: [key] = true
 		TutorialDone = false, -- finished or skipped the how-to-play tutorial
 	}
 end
@@ -111,6 +117,26 @@ local function sanitize(raw)
 	end
 	if type(raw.Home) == "string" and data.Homes[raw.Home] then
 		data.Home = raw.Home
+	end
+	if type(raw.Milestones) == "table" then
+		for key, unlocked in raw.Milestones do
+			if type(key) == "string" and unlocked == true then
+				data.Milestones[key] = true
+			end
+		end
+	end
+	for _, field in { "LastSpin", "LastDaily", "DailyStreak", "TotalEarned" } do
+		local value = raw[field]
+		if type(value) == "number" and value == value and value >= 0 and value < math.huge then
+			data[field] = math.floor(value)
+		end
+	end
+	if type(raw.Receipts) == "table" then
+		for _, purchaseId in raw.Receipts do
+			if type(purchaseId) == "string" then
+				table.insert(data.Receipts, purchaseId)
+			end
+		end
 	end
 	if type(raw.Vehicles) == "table" then
 		for vehicleId, owned in raw.Vehicles do
@@ -185,6 +211,12 @@ function PlayerData.save(player: Player, data): boolean
 		Vehicles = data.Vehicles,
 		Home = data.Home,
 		Homes = data.Homes,
+		LastSpin = data.LastSpin,
+		LastDaily = data.LastDaily,
+		DailyStreak = data.DailyStreak,
+		Receipts = data.Receipts,
+		TotalEarned = data.TotalEarned,
+		Milestones = data.Milestones,
 		TutorialDone = data.TutorialDone,
 	}
 

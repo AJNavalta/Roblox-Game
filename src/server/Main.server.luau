@@ -22,6 +22,7 @@ local Homes = require(script.Parent.Homes)
 local Market = require(script.Parent.Market)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
+local Rewards = require(script.Parent.Rewards)
 local Tutorial = require(script.Parent.Tutorial)
 local Tycoon = require(script.Parent.Tycoon)
 
@@ -35,6 +36,7 @@ Garage.init(Tycoon) -- the phone's car shop
 Homes.init(Tycoon, notifyEvent) -- the laptop's Homes app: buy and move into homes
 Tutorial.init() -- how-to-play tutorial (remembers who finished it)
 DevTools.init(Tycoon, notifyEvent) -- testing cheat: /money for the developer only
+Rewards.init(Tycoon, notifyEvent) -- left-side buttons: hourly spin, daily reward, Robux cash shop
 
 -- Build the world -----------------------------------------------------------
 
