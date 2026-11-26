@@ -26,7 +26,24 @@ local LemonadeStand = {}
 -- Where things go, in lot space (see HomeBuilder for the house layout)
 LemonadeStand.STAND_X = 25
 LemonadeStand.STAND_Z = -10
-local TREE_SPOTS = { { -58, -55 }, { -66, -66 }, { -56, -76 } }
+local TREE_SPOTS = { { 13, -31 }, { 22, -37 }, { 31, -32 } } -- between the stand and the house
+
+-- Where each item's round upgrade pad goes (lot space: x, z), right beside
+-- the part of the stand it upgrades, so you don't have to run around.
+-- Most are behind the counter, where the stand owner would stand.
+LemonadeStand.PAD_SPOTS = {
+	lemon_pitcher = { 23, -16 }, -- tanks: behind the counter
+	lemon_table = { 28, -16 }, -- counter
+	lemon_sign = { 33, -16 }, -- sign: by the right-hand post
+	lemon_stand2 = { 18, -18 }, -- canopy: by the left-hand post
+	lemon_recipe = { 25.5, -21 }, -- recipe book
+	lemon_truck = { 30.5, -21 }, -- party lights & speakers
+	lemon_pink = { 12, -14 }, -- pink tank: left of the stand
+	lemon_cooler = { 12, -8.5 }, -- cooler: left of the stand
+	lemon_slushie = { 38.5, -8 }, -- slushie machine: right of the stand
+	lemon_bike = { 8, -3.5 }, -- advertising: by the sidewalk sign
+	lemon_tree = { 20.5, -26 }, -- lemon trees: in front of them
+}
 
 -- Spots where customers stand to order, in stand space
 LemonadeStand.CUSTOMER_SPOTS = {

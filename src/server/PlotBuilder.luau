@@ -10,13 +10,14 @@
 	    [ Car Dealership      ]
 	    [ Clothing Brand      ]
 	    [   house    | garage ]   (HomeBuilder)
-	    lemonade   path  stand  driveway
-	    buttons    (claim pad)
+	   collector  path  stand  driveway
+	           (claim pad) (pads)
 	  ======== main avenue ========
 
 	Your home is at the front. The Lemonade Stand is ONE stand by the
-	driveway that upgrades in place (LemonadeStand.luau); its buttons are on
-	the front lawn. The later businesses are in the backyard: each item gets
+	driveway that upgrades in place (LemonadeStand.luau); its small round
+	upgrade pads sit right next to the part of the stand each one upgrades
+	(LemonadeStand.PAD_SPOTS). The later businesses are in the backyard: each item gets
 	a slot with a glowing BUY BUTTON in front of it, and once bought, a
 	building block appears in the slot. Upgrading makes the block taller.
 ]]
@@ -42,10 +43,7 @@ local ZONE_GAP = 8
 local FIRST_ZONE_Z = -100 -- local Z: 0 is the lot's front edge, negative is deeper in (behind the house)
 local CLAIM_Z = -10
 
--- Lemonade buttons sit in a grid on the front lawn, left of the path
-local LAWN_COLUMNS = { -64, -48, -32 }
-local LAWN_FIRST_ROW_Z = -9
-local LAWN_ROW_SPACING = 9
+local PAD_DIAMETER = 4 -- the round Lemonade upgrade pads
 
 -- Work out where every item's slot goes, once.
 -- The Lemonade Stand (stage 1) has no slots: everything goes on one stand.
@@ -54,11 +52,12 @@ local slotX = {}
 local buttonPos = {} -- [stageIndex][itemIndex] = { x, z } of the buy button
 local zoneBounds = {} -- [stageIndex] = { Front = z, Back = z }
 do
+	-- Lemonade pads go right next to the part of the stand they upgrade
 	slotX[1], slotZ[1], buttonPos[1] = {}, {}, {}
-	for itemIndex = 1, #Config.Stages[1].Items do
-		local column = (itemIndex - 1) % #LAWN_COLUMNS + 1
-		local row = math.floor((itemIndex - 1) / #LAWN_COLUMNS)
-		buttonPos[1][itemIndex] = { LAWN_COLUMNS[column], LAWN_FIRST_ROW_Z - row * LAWN_ROW_SPACING }
+	for itemIndex, item in Config.Stages[1].Items do
+		local spot = LemonadeStand.PAD_SPOTS[item.Id]
+		-- An item with no spot listed gets one in a row behind the stand
+		buttonPos[1][itemIndex] = if spot then { spot[1], spot[2] } else { 10 + itemIndex * 5, -40 }
 	end
 
 	local z = FIRST_ZONE_Z
@@ -219,7 +218,7 @@ function PlotBuilder.build(index: number)
 	local collector = makePart({
 		Name = "Collector",
 		Size = Vector3.new(8, 1, 8),
-		CFrame = at(8, 1.5, CLAIM_Z),
+		CFrame = at(-17, 1.5, CLAIM_Z),
 		Color = Color3.fromRGB(255, 200, 40),
 		Material = Enum.Material.Neon,
 		Parent = model,
@@ -227,12 +226,12 @@ function PlotBuilder.build(index: number)
 	plot.Collector = collector
 	plot.CollectorLabel = makeLabel(collector, "", 5, Color3.fromRGB(140, 255, 140), 12)
 
-	-- Lemonade: a sign post beside its buttons on the front lawn
+	-- Lemonade: a sign post beside the stand's upgrade pads
 	local lemonade = Config.Stages[1]
 	local lemonadeSign = makePart({
 		Name = lemonade.Id .. "_Sign",
 		Size = Vector3.new(1, 6, 1),
-		CFrame = at(-PlotBuilder.LOT_WIDTH / 2 + 3, 4, -20),
+		CFrame = at(7, 4, -20),
 		Color = lemonade.Color,
 		Parent = model,
 	})
@@ -266,14 +265,29 @@ function PlotBuilder.build(index: number)
 	for stageIndex, stage in Config.Stages do
 		for itemIndex, item in stage.Items do
 			local pos = buttonPos[stageIndex][itemIndex]
-			local button = makePart({
-				Name = item.Id .. "_Button",
-				Size = Vector3.new(8, 1, 5),
-				CFrame = at(pos[1], 1.5, pos[2]),
-				Material = Enum.Material.Neon,
-				Parent = nil,
-			})
-			local label = makeLabel(button, item.Name, 3.5, Color3.new(1, 1, 1), 11, 3.5)
+			local button, label
+			if stageIndex == 1 then
+				-- Small round pad (a cylinder lying flat)
+				button = makePart({
+					Name = item.Id .. "_Button",
+					Shape = Enum.PartType.Cylinder,
+					Size = Vector3.new(0.5, PAD_DIAMETER, PAD_DIAMETER),
+					CFrame = at(pos[1], 1.25, pos[2]) * CFrame.Angles(0, 0, math.rad(90)),
+					Material = Enum.Material.Neon,
+					Parent = nil,
+				})
+				label = makeLabel(button, item.Name, 2.6, Color3.new(1, 1, 1), 7, 2.2)
+				label.Parent.MaxDistance = 45 -- keep the area around the stand readable
+			else
+				button = makePart({
+					Name = item.Id .. "_Button",
+					Size = Vector3.new(8, 1, 5),
+					CFrame = at(pos[1], 1.5, pos[2]),
+					Material = Enum.Material.Neon,
+					Parent = nil,
+				})
+				label = makeLabel(button, item.Name, 3.5, Color3.new(1, 1, 1), 11, 3.5)
+			end
 			plot.Buttons[item.Id] = { Part = button, Label = label }
 		end
 	end
