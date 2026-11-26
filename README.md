@@ -125,6 +125,32 @@ Almost everything you'll want to tweak is in **`src/shared/Config.luau`** (the t
 * **Homes** live in **`src/shared/HomeConfig.luau`** (names, prices, the listing text). What each home looks like is in `HOUSE_SPECS` in `src/server/HomeBuilder.luau`.
 * **Don't rename an item's `Id`** once people have played, or they lose that item from their save. Renaming the `Name` is fine.
 
+## Better-looking cars (Toolbox models)
+
+The car shop builds simple block cars from code. You can swap any of them for a real car model from the Roblox Toolbox. No coding needed:
+
+1. In Studio, in the **Explorer**, right-click **ServerStorage** → **Insert Object** → **Folder**. Name it exactly `Vehicles`.
+2. Open the **Toolbox** (View tab → Toolbox) → **Models**, and search for a *drivable* car, for example `A-Chassis sedan`, `drivable van`, `drivable sports car`, `drivable bike`. Pick ones with lots of 👍 and a **verified** creator badge.
+3. Click the model to insert it. Test it first: press Play, sit in it, and drive with W A S D. If it doesn't drive, delete it and try another.
+4. Drag the model into **ServerStorage → Vehicles** and rename it to the car's id from the table below.
+5. Press Play, buy that car on your phone, and press **SPAWN**. Your model appears on the driveway.
+
+| Shop car | Name the model |
+|----------|----------------|
+| Bicycle | `bicycle` |
+| Moped Scooter | `scooter` |
+| Family Sedan | `sedan` |
+| Pickup Truck | `pickup` |
+| Delivery Van | `van` |
+| Sports Car | `sports` |
+| Stretch Limo | `limo` |
+| Gold Hypercar | `hyper` |
+
+* **Car facing the wrong way?** Select the model, scroll to the bottom of **Properties** → **Attributes** → **+** → name `SpawnRotation`, type **Number**, value `180` (or `90` / `-90`).
+* Any car without a model in the folder still uses the built-in block car.
+* **Safety:** free models can hide bad scripts. After inserting one, expand it in the Explorer and delete any script that isn't clearly part of the car (look for names like "Backdoor", "Virus", "Spread", "Loader", or scripts that use `require(` with a long number). Stick to well-rated, verified creators.
+* Rojo doesn't touch **ServerStorage**, so your models stay put when you sync. They live in the place file, so **publish the place** (File → Publish to Roblox) to keep them.
+
 ## How the code is organised
 
 ```

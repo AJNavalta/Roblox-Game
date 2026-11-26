@@ -9,7 +9,14 @@
 	    workspace.Lots whose OwnerUserId attribute is your UserId). If there's
 	    no such spot, the car appears in front of you instead.
 
-	How the cars work: a body block, a VehicleSeat, and four wheels on
+	Want nicer-looking cars? Put a drivable car Model from the Toolbox into
+	ServerStorage > Vehicles in Studio and name it after the car's Id or Name
+	(e.g. "sedan" or "Family Sedan"). The shop then spawns your model instead
+	of the built-in block car. See the README ("Better-looking cars").
+	If a model faces the wrong way, give it a number attribute SpawnRotation
+	(try 180 or 90).
+
+	How the built-in cars work: a body block, a VehicleSeat, and four wheels on
 	HingeConstraints. The back wheels are motors (gas), the front wheels
 	turn on servo hinges (steering). Sit in the seat and drive with
 	W A S D (or the thumbstick on mobile). Jump to get out.
@@ -22,6 +29,7 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Format = require(ReplicatedStorage.Shared.Format)
 local VehicleConfig = require(ReplicatedStorage.Shared.VehicleConfig)
@@ -278,6 +286,48 @@ local function removeCar(player: Player)
 	end
 end
 
+-- Toolbox cars ----------------------------------------------------------------
+
+-- Finds a car Model AJ put in ServerStorage > Vehicles for this vehicle
+local function findCustomModel(def): Model?
+	local folder = ServerStorage:FindFirstChild("Vehicles")
+	if not folder then
+		return nil
+	end
+	local wanted = { def.Id:lower(), def.Name:lower() }
+	for _, child in folder:GetChildren() do
+		local name = child.Name:lower()
+		if child:IsA("Model") and (name == wanted[1] or name == wanted[2]) then
+			return child
+		end
+	end
+	return nil
+end
+
+-- Copies the Toolbox car and parks it with its wheels on the spot
+local function placeCustomModel(template: Model, cframe: CFrame): Model
+	local car = template:Clone()
+	local rotation = car:GetAttribute("SpawnRotation")
+	local turn = if type(rotation) == "number" then math.rad(rotation) else 0
+
+	local boxCFrame, boxSize = car:GetBoundingBox()
+	local pivotFromBox = boxCFrame:ToObjectSpace(car:GetPivot())
+	local target = cframe * CFrame.Angles(0, turn, 0) * CFrame.new(0, boxSize.Y / 2 + 0.3, 0)
+	car:PivotTo(target * pivotFromBox)
+
+	local hasScript = false
+	for _, descendant in car:GetDescendants() do
+		if descendant:IsA("Script") or descendant:IsA("LocalScript") then
+			hasScript = true
+			break
+		end
+	end
+	if not hasScript then
+		warn(("[Garage] '%s' in ServerStorage.Vehicles has no scripts, so it probably can't drive. Pick a Toolbox car that says it's drivable (like an A-Chassis car)."):format(template.Name))
+	end
+	return car
+end
+
 local function spawnCar(player: Player, def)
 	local cframe = findCarSpawn(player) or spotInFront(player)
 	if not cframe then
@@ -285,6 +335,18 @@ local function spawnCar(player: Player, def)
 	end
 
 	removeCar(player)
+
+	local template = findCustomModel(def)
+	if template then
+		local ok, car = pcall(placeCustomModel, template, cframe)
+		if ok then
+			car:SetAttribute("OwnerUserId", player.UserId)
+			car.Parent = workspace
+			activeCars[player] = car -- it drives with its own scripts
+			return true, def.Emoji .. " " .. def.Name .. " is waiting on your driveway!"
+		end
+		warn("[Garage] Couldn't spawn the Toolbox model for " .. def.Name .. ", using the built-in car:", car)
+	end
 	local model, info = build(def, cframe)
 	model:SetAttribute("OwnerUserId", player.UserId)
 	model.Parent = workspace
