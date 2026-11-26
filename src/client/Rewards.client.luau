@@ -554,9 +554,10 @@ end
 -- Big pop-up when a badge unlocks
 local popup = make("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, -140),
+	Position = UDim2.new(0.5, 0, 0, -200),
 	Size = UDim2.fromOffset(360, 110),
 	BackgroundColor3 = BG,
+	Visible = false, -- only shown while a badge pop-up is playing
 	ZIndex = 10,
 	Parent = gui,
 }, { corner(16) })
@@ -590,11 +591,14 @@ local function showNextPopup()
 	local milestone = table.remove(popupQueue, 1)
 	popupIcon.Text = milestone.Emoji
 	popupName.Text = milestone.Name
+	popup.Position = UDim2.new(0.5, 0, 0, -200)
+	popup.Visible = true
 	local slide = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	TweenService:Create(popup, slide, { Position = UDim2.new(0.5, 0, 0, 90) }):Play()
+	TweenService:Create(popup, slide, { Position = UDim2.new(0.5, 0, 0, 120) }):Play() -- below the cash bar
 	task.delay(3.5, function()
-		TweenService:Create(popup, TweenInfo.new(0.3), { Position = UDim2.new(0.5, 0, 0, -140) }):Play()
+		TweenService:Create(popup, TweenInfo.new(0.3), { Position = UDim2.new(0.5, 0, 0, -200) }):Play()
 		task.wait(0.4)
+		popup.Visible = false
 		popupBusy = false
 		showNextPopup()
 	end)
