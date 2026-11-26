@@ -24,7 +24,11 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a lot, start with
    * **Boost** items (glowing blocks) multiply the income of their whole business.
    * You don't need to buy everything in a business to open the next one.
 
-Your progress saves automatically. With smart play it takes roughly 75 minutes to hit $1B.
+5. **Your phone** 📱 sits in the bottom-right corner (click it or press **P**). It slides up with four apps:
+   * **🏦 Bank** shows your cash, money waiting at the collector, your investments, profit or loss, and net worth.
+   * **📈 Stocks**, **🪙 Crypto** and **🖼️ NFTs** open the big **Billionaire Exchange** window. Invest in 30 made-up companies, parody crypto like **BitBucks**, or NFT collections. Prices move every few seconds, sometimes with big news jumps. Type an amount (like `500` or `2.5k`) and press **BUY**. Press **SELL** or **SELL ALL** any time to cash out. The **My Portfolio** tab shows everything you own and your profit.
+
+Your progress saves automatically, including your investments. With smart play it takes roughly 75 minutes to hit $1B.
 
 ---
 
@@ -100,6 +104,7 @@ Almost everything you'll want to tweak is in **`src/shared/Config.luau`** (the t
 * **Make a booster:** add `Boost = 1.5` (+50% income for that business).
 * **Change when a business opens:** edit its `Unlock = { Stage = "...", ItemsOwned = 4 }`.
 * **More lots in the city:** raise `LotColumns` (there are 2 rows, so 3 columns = 6 lots).
+* **Stocks, crypto and NFTs** live in **`src/shared/MarketConfig.luau`**. Add a company by copying a line, change a `Base` price, or make something wilder with a bigger `Vol`. Same rule: don't rename an asset's `Id` once people have invested in it.
 * **Don't rename an item's `Id`** once people have played, or they lose that item from their save. Renaming the `Name` is fine.
 
 ## How the code is organised
@@ -111,14 +116,17 @@ src/
     Config.luau             all businesses, items, prices, settings
     Progression.luau        rules: what can I buy, what unlocks, income math
     Format.luau             turns 2500000 into "$2.50M"
+    MarketConfig.luau       the 30 stocks, crypto coins and NFTs, and how prices move
   server/                   -> ServerScriptService.Server
     Main.server.luau        starting point: join/leave, claiming lots, loops
     Tycoon.luau             buying, upgrading, collecting cash
     CityBuilder.luau        roads, plaza, street lights, skyline
     PlotBuilder.luau        the claimable lots and their buttons
     PlayerData.luau         DataStore load/save
+    Market.luau             stock prices, buying and selling (server only)
   client/                   -> StarterPlayerScripts.Client
     Hud.client.luau         cash display, income, progress bar, pop-ups
+    Phone.client.luau       the phone, Bank app and Market window
 ```
 
 File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` becomes a **LocalScript**, and plain `.luau` becomes a **ModuleScript**.

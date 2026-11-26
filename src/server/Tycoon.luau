@@ -306,4 +306,20 @@ function Tycoon.getSessions()
 	return sessions
 end
 
+function Tycoon.getSession(player: Player)
+	return sessions[player]
+end
+
+-- Adds (or with a negative amount, takes away) cash. Used by the phone's
+-- Market app. Callers must check the player can afford it first.
+function Tycoon.changeCash(player: Player, amount: number)
+	local session = sessions[player]
+	if not session then
+		return
+	end
+	session.Data.Cash = math.max(0, session.Data.Cash + amount)
+	checkBillionaire(session)
+	refresh(session)
+end
+
 return Tycoon

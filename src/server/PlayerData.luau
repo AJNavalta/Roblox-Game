@@ -12,6 +12,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local MarketConfig = require(ReplicatedStorage.Shared.MarketConfig)
 
 local PlayerData = {}
 
@@ -41,6 +42,7 @@ local function defaultData()
 		Pending = 0,
 		Owned = {},
 		Billionaire = false,
+		Portfolio = {}, -- stocks, crypto and NFTs: [assetId] = { Shares, Cost }
 	}
 end
 
@@ -72,6 +74,16 @@ local function sanitize(raw)
 		end
 	end
 	data.Billionaire = raw.Billionaire == true
+	if type(raw.Portfolio) == "table" then
+		for assetId, holding in raw.Portfolio do
+			if MarketConfig.AssetsById[assetId] and type(holding) == "table"
+				and type(holding.Shares) == "number" and holding.Shares > 0 and holding.Shares < math.huge
+			then
+				local cost = if type(holding.Cost) == "number" and holding.Cost >= 0 then holding.Cost else 0
+				data.Portfolio[assetId] = { Shares = holding.Shares, Cost = cost }
+			end
+		end
+	end
 	return data
 end
 
@@ -112,6 +124,7 @@ function PlayerData.save(player: Player, data): boolean
 		Pending = data.Pending,
 		Owned = data.Owned,
 		Billionaire = data.Billionaire,
+		Portfolio = data.Portfolio,
 	}
 
 	local ok, err = pcall(function()
