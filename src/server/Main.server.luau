@@ -6,6 +6,7 @@
 	  claims a lot  -> start their tycoon on it
 	  every second  -> pay income
 	  every minute  -> autosave
+	  every 3 sec   -> stock prices move (see Market.luau)
 	  player leaves -> save, put their lot back up for sale
 ]]
 
@@ -15,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local CityBuilder = require(script.Parent.CityBuilder)
 local Customers = require(script.Parent.Customers)
+local Market = require(script.Parent.Market)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
 local Tycoon = require(script.Parent.Tycoon)
@@ -24,6 +26,7 @@ local notifyEvent = Instance.new("RemoteEvent")
 notifyEvent.Name = "TycoonNotify"
 notifyEvent.Parent = ReplicatedStorage
 Tycoon.init(notifyEvent)
+Market.init(Tycoon, notifyEvent) -- the phone's stock market, crypto and NFTs
 
 -- Build the world -----------------------------------------------------------
 
