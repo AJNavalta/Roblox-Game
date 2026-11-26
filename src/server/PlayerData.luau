@@ -64,6 +64,7 @@ local function defaultData()
 		Receipts = {}, -- 💰 Robux purchase IDs already paid out
 		TotalEarned = 0, -- 🏆 all cash ever earned (for milestone badges)
 		Milestones = {}, -- 🏆 badges unlocked: [key] = true
+		TutorialDone = false, -- finished or skipped the how-to-play tutorial
 	}
 end
 
@@ -95,6 +96,8 @@ local function sanitize(raw)
 		end
 	end
 	data.Billionaire = raw.Billionaire == true
+	-- Older saves that already bought something don't need the tutorial
+	data.TutorialDone = raw.TutorialDone == true or next(data.Owned) ~= nil
 	if type(raw.Portfolio) == "table" then
 		for assetId, holding in raw.Portfolio do
 			if MarketConfig.AssetsById[assetId] and type(holding) == "table"
@@ -214,6 +217,7 @@ function PlayerData.save(player: Player, data): boolean
 		Receipts = data.Receipts,
 		TotalEarned = data.TotalEarned,
 		Milestones = data.Milestones,
+		TutorialDone = data.TutorialDone,
 	}
 
 	local ok, err = pcall(function()

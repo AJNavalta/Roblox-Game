@@ -14,7 +14,7 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a home, sell lemo
 
 **How to play:**
 
-1. When you join, pick one of your **3 save files** (or start a new game in an empty one). The **💾 Saves** button under the cash bar lets you switch any time. Then walk from the plaza to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
+1. New saves start with a short **how-to-play tutorial**: glowing arrows on the ground lead you to claim a lot, open your stand, collect your money and use your laptop (you can skip it). When you join, pick one of your **3 save files** (or start a new game in an empty one). The **💾 Saves** button under the cash bar lets you switch any time. Then walk from the plaza to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
    Everyone starts out living in a tiny **Garden Shed** (with a desk, a laptop and a camp bed) next to a driveway. Your lemonade stand is at the end of the driveway, and every Lemonade upgrade (more tanks, a better sign, advertising, a canopy...) improves that one stand. Its small round upgrade pads sit right next to the part they upgrade (the pad positions are `PAD_SPOTS` in `src/server/LemonadeStand.luau`). Customers walk up, grab a cup and leave.
 2. Walk onto glowing buttons to buy things. **Green** = you can afford it, **red** = not yet, **grey** = you need to buy something else first (the button tells you what).
 3. Every item earns money per second. A 💵 money icon floats above your lemonade stand showing how much is waiting. Walk up to the stand (or press **E** there) to collect it.
@@ -96,6 +96,8 @@ DataStores only work in a published place:
 3. While you're in Game Settings, set **Places → Max Players** to **6** (the city has 6 lots).
 
 If saving is off you'll see a red pop-up when you join. The game still works, it just won't remember you.
+
+> Tip: want to see the tutorial again? Pick an empty save file: every new save starts with it.
 
 > Tip: need money to test with? Type `/money 1m` in chat (works with `500`, `25k`, `2.5b`...) or click the purple **🛠️ +$1.00M / +$1.00B** buttons under the cash bar. This only works for the developer accounts listed at the top of `src/server/DevTools.luau` (Monsky) and in Studio tests. Nobody else can use it.
 
@@ -213,11 +215,13 @@ src/
     Market.luau             stock prices, buying and selling (server only)
     Garage.luau             buying cars, spawning and driving them
     DevTools.luau           /money testing cheat, developer only
+    Tutorial.luau           remembers who finished the tutorial (per save)
   client/                   -> StarterPlayerScripts.Client
     Hud.client.luau         the slim bar at the top (cash, income, progress) and pop-ups
     Phone.client.luau       the phone, Bank, Market, Cars and the laptop desktop
     HomesApp.luau           the 🏠 Homes app on the laptop
     SaveSlots.client.luau   the "choose your save" screen and the 💾 Saves button
+    Tutorial.client.luau    the how-to-play tutorial: step card and ground arrows
 ```
 
 File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` becomes a **LocalScript**, and plain `.luau` becomes a **ModuleScript**.
