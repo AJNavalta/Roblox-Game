@@ -1,0 +1,15 @@
+# Roblox place files (the code lives in src/, the place lives in Studio)
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+
+# Rojo / tooling output
+sourcemap.json
+/build/
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
