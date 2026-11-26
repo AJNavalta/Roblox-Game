@@ -15,7 +15,7 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a home, sell lemo
 **How to play:**
 
 1. You spawn in the plaza in the middle of the city. Walk to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
-   Each lot comes with a house (with a laptop workstation inside), a garage and a driveway. Your lemonade stand is at the end of the driveway, and every Lemonade upgrade (more tanks, a better sign, advertising, a canopy...) improves that one stand. Customers walk up, grab a cup and leave.
+   Each lot comes with a house (with a laptop workstation inside), a garage and a driveway. Your lemonade stand is at the end of the driveway, and every Lemonade upgrade (more tanks, a better sign, advertising, a canopy...) improves that one stand. Its small round upgrade pads sit right next to the part they upgrade (the pad positions are `PAD_SPOTS` in `src/server/LemonadeStand.luau`). Customers walk up, grab a cup and leave.
 2. Walk onto glowing buttons to buy things. **Green** = you can afford it, **red** = not yet, **grey** = you need to buy something else first (the button tells you what).
 3. Every item earns money per second, which piles up on your gold **Cash Collector** pad. Step on it to bank the money.
 4. It's not a straight line. You choose your path:
