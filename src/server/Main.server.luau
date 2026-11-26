@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CityBuilder = require(script.Parent.CityBuilder)
+local Customers = require(script.Parent.Customers)
 local Market = require(script.Parent.Market)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
@@ -57,6 +58,9 @@ for index = 1, PlotBuilder.LotCount do
 		end
 	end)
 end
+
+-- NPC customers who visit players' lemonade stands
+Customers.start()
 
 -- Joining and leaving -------------------------------------------------------
 

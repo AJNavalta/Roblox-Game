@@ -122,6 +122,8 @@ src/
     Tycoon.luau             buying, upgrading, collecting cash
     CityBuilder.luau        roads, plaza, street lights, skyline
     PlotBuilder.luau        the claimable lots and their buttons
+    ItemModels.luau         3D models for items (the lemonade stand props)
+    Customers.luau          NPC customers who visit your lemonade stands
     PlayerData.luau         DataStore load/save
     Market.luau             stock prices, buying and selling (server only)
   client/                   -> StarterPlayerScripts.Client
@@ -134,6 +136,6 @@ File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` b
 ## Ideas for next steps
 
 * More choices and upgrades in the later businesses, like the Lemonade Stand has.
-* Swap the plain blocks for real models (a lemonade stand, a car lot, a GPU factory) built in Studio.
+* Give the later businesses models like the Lemonade Stand has (add builders in `ItemModels.luau`), and customers of their own.
 * Rebirth/prestige: reset progress for a permanent income multiplier.
 * Gamepasses like 2x cash, and sound effects when buying or collecting.
