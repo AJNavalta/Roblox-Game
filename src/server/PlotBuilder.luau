@@ -238,8 +238,38 @@ function PlotBuilder.build(index: number)
 	collectPrompt.HoldDuration = 0
 	collectPrompt.MaxActivationDistance = 12
 	collectPrompt.RequiresLineOfSight = false
-	collectPrompt.Enabled = false
+	-- Lot prompts: the server sets the "Active" attribute, and each player's
+	-- screen only shows the prompt to the right people (see Hud.client.luau):
+	-- ForOwner = true means only the lot's owner sees it, false means only visitors.
+	collectPrompt:SetAttribute("Active", false)
+	collectPrompt:SetAttribute("ForOwner", true)
+	collectPrompt:SetAttribute("OwnerUserId", 0)
+	CollectionService:AddTag(collectPrompt, "LotPrompt")
 	collectPrompt.Parent = collector
+
+	-- Other players can walk up to the front of your stand and buy a cup
+	local counter = makePart({
+		Name = "CustomerCounter",
+		Size = Vector3.new(9, 4, 3),
+		CFrame = standCFrame * CFrame.new(0, 2, 3),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Parent = model,
+	})
+	local buyPrompt = Instance.new("ProximityPrompt")
+	buyPrompt.Name = "BuyLemonadePrompt"
+	buyPrompt.ActionText = "Buy a lemonade"
+	buyPrompt.ObjectText = "Lemonade Stand"
+	buyPrompt.HoldDuration = 0.3
+	buyPrompt.MaxActivationDistance = 10
+	buyPrompt.RequiresLineOfSight = false
+	buyPrompt:SetAttribute("Active", false)
+	buyPrompt:SetAttribute("ForOwner", false)
+	buyPrompt:SetAttribute("OwnerUserId", 0)
+	CollectionService:AddTag(buyPrompt, "LotPrompt")
+	buyPrompt.Parent = counter
 
 	local icon = Instance.new("BillboardGui")
 	icon.Name = "CashIcon"
@@ -273,6 +303,7 @@ function PlotBuilder.build(index: number)
 	plot.CollectorLabel = amount
 	plot.CollectorIcon = icon
 	plot.CollectorPrompt = collectPrompt
+	plot.BuyPrompt = buyPrompt
 
 	-- Lemonade: a sign post beside the stand's upgrade pads
 	local lemonade = Config.Stages[1]
@@ -421,6 +452,8 @@ function PlotBuilder.setOwner(plot, player: Player?)
 	local ownerId = if player then player.UserId else 0
 	plot.Model:SetAttribute("OwnerUserId", ownerId)
 	plot.Laptop:SetAttribute("OwnerUserId", ownerId)
+	plot.CollectorPrompt:SetAttribute("OwnerUserId", ownerId)
+	plot.BuyPrompt:SetAttribute("OwnerUserId", ownerId)
 	if player then
 		plot.ClaimPad.Color = Color3.fromRGB(245, 245, 245)
 		plot.ClaimLabel.Text = player.DisplayName .. "'s Empire"
@@ -438,7 +471,8 @@ function PlotBuilder.setOwner(plot, player: Player?)
 		end
 		plot.CollectorLabel.Text = "$0"
 		plot.CollectorIcon.Enabled = false
-		plot.CollectorPrompt.Enabled = false
+		plot.CollectorPrompt:SetAttribute("Active", false)
+		plot.BuyPrompt:SetAttribute("Active", false)
 		PlotBuilder.setHome(plot, HomeConfig.StartingHome)
 		for stageIndex, stage in Config.Stages do
 			plot.StageLabels[stageIndex].Text = stage.Name

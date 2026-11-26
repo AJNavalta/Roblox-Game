@@ -2,7 +2,7 @@
 	Main.server.luau
 	The server's starting point. It wires the modules together:
 	  server starts -> build the city and the empty lots
-	  player joins  -> load their save, spawn them in the plaza
+	  player joins  -> they pick a save slot, we load it (see "Save slots")
 	  claims a lot  -> start their tycoon on it
 	  every second  -> pay income
 	  every minute  -> autosave
@@ -68,17 +68,109 @@ Customers.start()
 
 -- Joining and leaving -------------------------------------------------------
 
-local function onPlayerAdded(player: Player)
-	local data = PlayerData.load(player)
+-- Save slots ------------------------------------------------------------------
+-- Each player has 3 save files. The "choose a save" screen
+-- (src/client/SaveSlots.client.luau) asks this RemoteFunction:
+--   ("list")         -> { Saving, Current, Slots = { [slot] = summary or false } }
+--   ("choose", slot) -> { Ok, Message, Current }
+-- Choosing another slot mid-game saves the current one first, then loads
+-- the new one onto the same lot.
+
+local Progression = require(ReplicatedStorage.Shared.Progression)
+local HomeConfig = require(ReplicatedStorage.Shared.HomeConfig)
+
+local switching: { [Player]: boolean } = {}
+
+local function summarize(data)
+	local items = 0
+	for _ in data.Owned do
+		items += 1
+	end
+	local home = HomeConfig.HomesById[data.Home]
+	return {
+		Cash = data.Cash + data.Pending,
+		Stage = Config.Stages[Progression.highestUnlockedStage(data.Owned)].Name,
+		Home = if home then home.Name else "",
+		Items = items,
+	}
+end
+
+local function chooseSlot(player: Player, slot: number)
+	if switching[player] then
+		return { Ok = false, Message = "Hang on, still loading..." }
+	end
+	if PlayerData.getSlot(player) == slot and loadedData[player] then
+		return { Ok = true, Current = slot }
+	end
+	switching[player] = true
+
+	-- Save and pack up the current game, if there is one
+	local plot = plotOf[player]
+	local session = Tycoon.stop(player)
+	if session then
+		PlayerData.save(player, session.Data)
+	end
+	if plot then
+		plotOf[player] = nil
+		PlotBuilder.setOwner(plot, nil)
+		player:SetAttribute("HasLot", false)
+	end
+	loadedData[player] = nil
+
+	local data = PlayerData.load(player, slot)
+	switching[player] = nil
 	if not player.Parent then
-		return -- they left while we were loading
+		return { Ok = false } -- they left while we were loading
 	end
 	loadedData[player] = data
+	player:SetAttribute("SaveSlot", slot)
 
-	notifyEvent:FireClient(player, "Welcome to " .. Config.CityName .. "! Walk to a blue FOR SALE pad to claim a lot.", "info")
+	if plot and not plot.Owner then
+		claim(player, plot) -- straight back onto the same lot
+	else
+		notifyEvent:FireClient(player, "Save " .. slot .. " loaded! Walk to a blue FOR SALE pad to claim a lot.", "info")
+	end
 	if not PlayerData.isSaving(player) then
 		notifyEvent:FireClient(player, "Saving is off right now. See the README to turn it on in Studio.", "error")
 	end
+	return { Ok = true, Current = slot }
+end
+
+local saveRequest = Instance.new("RemoteFunction")
+saveRequest.Name = "SaveRequest"
+saveRequest.OnServerInvoke = function(player, action, slot)
+	if action == "list" then
+		local stored = PlayerData.peek(player)
+		local current = PlayerData.getSlot(player)
+		local slots = {}
+		for index = 1, PlayerData.SLOT_COUNT do
+			local data = stored and stored[index]
+			-- The slot you're playing right now: show the live numbers
+			if index == current and loadedData[player] then
+				data = loadedData[player]
+			end
+			slots[index] = if data then summarize(data) else false
+		end
+		return { Saving = stored ~= nil, Current = current, Slots = slots }
+	elseif action == "choose" then
+		if type(slot) ~= "number" or slot ~= math.floor(slot) or slot < 1 or slot > PlayerData.SLOT_COUNT then
+			return { Ok = false, Message = "That save doesn't exist." }
+		end
+		local ok, result = pcall(chooseSlot, player, slot)
+		if not ok then
+			switching[player] = nil
+			warn("[SaveSlots]", result)
+			return { Ok = false, Message = "Something went wrong, try again." }
+		end
+		return result
+	end
+	return { Ok = false }
+end
+saveRequest.Parent = ReplicatedStorage
+
+local function onPlayerAdded(player: Player)
+	-- Nothing loads until they pick a save slot on the "choose a save" screen
+	notifyEvent:FireClient(player, "Welcome to " .. Config.CityName .. "! Pick a save file to start.", "info")
 end
 
 local function onPlayerRemoving(player: Player)
@@ -88,6 +180,7 @@ local function onPlayerRemoving(player: Player)
 	end
 	PlayerData.forget(player)
 	loadedData[player] = nil
+	switching[player] = nil
 
 	local plot = plotOf[player]
 	if plot then

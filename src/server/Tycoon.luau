@@ -110,7 +110,8 @@ local function refresh(session)
 	local waiting = math.floor(data.Pending)
 	plot.CollectorLabel.Text = Format.money(waiting)
 	plot.CollectorIcon.Enabled = waiting >= 1
-	plot.CollectorPrompt.Enabled = waiting >= 1
+	plot.CollectorPrompt:SetAttribute("Active", waiting >= 1)
+	plot.BuyPrompt:SetAttribute("Active", Tycoon.hasStand(owned))
 
 	for index, stage in Config.Stages do
 		local unlocked, have, need = Progression.stageUnlock(owned, index)
@@ -181,6 +182,11 @@ function Tycoon.attachPlot(plot)
 		if sessions[player] and plot.Owner == player then
 			Tycoon.collect(player)
 		end
+	end)
+
+	-- Real players buying a cup at someone else's stand
+	plot.BuyPrompt.Triggered:Connect(function(buyer)
+		Tycoon.buyLemonade(buyer, plot)
 	end)
 end
 
@@ -256,6 +262,104 @@ function Tycoon.collect(player: Player)
 	refresh(session)
 end
 
+-- Real players as customers ---------------------------------------------------
+-- Any player can walk up to the front of someone else's lemonade stand and
+-- buy a cup. They pay a small price, the stand's owner gets double that as a
+-- "real customer" bonus, and the buyer gets a lemon speed rush.
+
+local CUP_COOLDOWN = 15 -- seconds before you can buy at the same stand again
+local RUSH_SPEED = 24 -- walk speed during a lemon rush (normal is 16)
+local RUSH_TIME = 20 -- seconds
+
+function Tycoon.hasStand(owned): boolean
+	return (owned.lemon_pitcher or 0) > 0 or (owned.lemon_table or 0) > 0
+end
+
+-- The price of a cup goes up as the stand gets fancier: $5 + $5 per lemonade item
+function Tycoon.cupPrice(owned): number
+	local count = 0
+	for _, item in Config.Stages[1].Items do
+		if (owned[item.Id] or 0) > 0 then
+			count += 1
+		end
+	end
+	return 5 + 5 * count
+end
+
+local function lemonRush(player: Player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local hand = character and character:FindFirstChild("RightHand")
+	if not humanoid then
+		return
+	end
+	if hand and not character:FindFirstChild("LemonadeCup") then
+		local cup = Instance.new("Part")
+		cup.Name = "LemonadeCup"
+		cup.Shape = Enum.PartType.Cylinder
+		cup.Size = Vector3.new(0.8, 0.5, 0.5)
+		cup.Color = Color3.fromRGB(255, 240, 120)
+		cup.CanCollide = false
+		cup.Massless = true
+		cup.CFrame = hand.CFrame * CFrame.new(0, -0.4, -0.2) * CFrame.Angles(0, 0, math.rad(90))
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = hand
+		weld.Part1 = cup
+		weld.Parent = cup
+		cup.Parent = character
+		task.delay(RUSH_TIME, function()
+			cup:Destroy()
+		end)
+	end
+	local token = os.clock()
+	player:SetAttribute("LemonRush", token)
+	humanoid.WalkSpeed = RUSH_SPEED
+	task.delay(RUSH_TIME, function()
+		-- Only end the rush if they didn't start a newer one
+		if player:GetAttribute("LemonRush") == token and humanoid.Parent then
+			humanoid.WalkSpeed = 16
+		end
+	end)
+end
+
+function Tycoon.buyLemonade(buyer: Player, plot)
+	local owner = plot.Owner
+	local buyerSession = sessions[buyer]
+	local ownerSession = owner and sessions[owner]
+	if not ownerSession or owner == buyer then
+		return
+	end
+	if not Tycoon.hasStand(ownerSession.Data.Owned) then
+		return
+	end
+	if not buyerSession then
+		notify(buyer, "Claim a lot first so you have money to spend!", "error")
+		return
+	end
+	local key = "cup_" .. plot.Index
+	local last = buyerSession.Cooldowns[key]
+	if last and os.clock() - last < CUP_COOLDOWN then
+		notify(buyer, "You're still sipping! Try again in a few seconds.", "info")
+		return
+	end
+
+	local price = Tycoon.cupPrice(ownerSession.Data.Owned)
+	if buyerSession.Data.Cash < price then
+		notify(buyer, "A cup costs " .. Format.money(price) .. ".", "error")
+		return
+	end
+	buyerSession.Cooldowns[key] = os.clock()
+
+	buyerSession.Data.Cash -= price
+	ownerSession.Data.Cash += price * 2
+	lemonRush(buyer)
+	notify(buyer, "🍋 You bought a lemonade from " .. owner.DisplayName .. "! Lemon rush: run faster for " .. RUSH_TIME .. "s.", "success")
+	notify(owner, "🍋 " .. buyer.DisplayName .. " bought a lemonade! +" .. Format.money(price * 2) .. " (real customer bonus)", "cash")
+	checkBillionaire(ownerSession)
+	refresh(buyerSession)
+	refresh(ownerSession)
+end
+
 -- Called every Config.IncomeInterval seconds by Main.
 function Tycoon.tick(deltaSeconds: number)
 	for _, session in sessions do
@@ -274,12 +378,20 @@ function Tycoon.start(player: Player, data, plot)
 		Cooldowns = {},
 	}
 
-	local leaderstats = Instance.new("Folder")
-	leaderstats.Name = "leaderstats" -- this exact name makes Roblox show it on the player list
-	local cash = Instance.new("NumberValue")
-	cash.Name = "Cash"
-	cash.Parent = leaderstats
-	leaderstats.Parent = player
+	-- Reuse the cash display if they already had one (switching save slots),
+	-- so the HUD and phone keep working
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if not leaderstats then
+		leaderstats = Instance.new("Folder")
+		leaderstats.Name = "leaderstats" -- this exact name makes Roblox show it on the player list
+		leaderstats.Parent = player
+	end
+	local cash = leaderstats:FindFirstChild("Cash")
+	if not cash then
+		cash = Instance.new("NumberValue")
+		cash.Name = "Cash"
+		cash.Parent = leaderstats
+	end
 	session.CashValue = cash
 
 	-- Rebuild everything they bought in earlier visits
@@ -290,8 +402,8 @@ function Tycoon.start(player: Player, data, plot)
 		end
 	end
 
-	player.CharacterAdded:Connect(function(character)
-		if sessions[player] then
+	session.CharacterConnection = player.CharacterAdded:Connect(function(character)
+		if sessions[player] == session then
 			moveCharacterToPlot(character, plot)
 		end
 	end)
@@ -309,6 +421,9 @@ end
 function Tycoon.stop(player: Player)
 	local session = sessions[player]
 	sessions[player] = nil
+	if session and session.CharacterConnection then
+		session.CharacterConnection:Disconnect()
+	end
 	return session
 end
 

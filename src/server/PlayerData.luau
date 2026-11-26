@@ -6,6 +6,10 @@
 	  1. the place is published to Roblox (File > Publish to Roblox), and
 	  2. Game Settings > Security > "Enable Studio Access to API Services" is ON.
 	If either is missing, the game still runs, it just won't remember you.
+
+	Save slots: every player has PlayerData.SLOT_COUNT separate save files.
+	Slot 1 uses the same key as before slots existed, so old saves show up
+	there.
 ]]
 
 local DataStoreService = game:GetService("DataStoreService")
@@ -17,6 +21,8 @@ local MarketConfig = require(ReplicatedStorage.Shared.MarketConfig)
 local VehicleConfig = require(ReplicatedStorage.Shared.VehicleConfig)
 
 local PlayerData = {}
+
+PlayerData.SLOT_COUNT = 3
 
 local store: DataStore? = nil
 do
@@ -33,9 +39,13 @@ end
 -- Players whose data loaded correctly. We never save for anyone else, so a
 -- hiccup while loading can't wipe out their real save with a blank one.
 local canSave: { [Player]: boolean } = {}
+local slotOf: { [Player]: number } = {} -- which save slot each player is playing
 
-local function keyFor(player: Player): string
-	return "player_" .. player.UserId
+local function keyFor(player: Player, slot: number): string
+	if slot == 1 then
+		return "player_" .. player.UserId -- the original key, so old saves land in slot 1
+	end
+	return "player_" .. player.UserId .. "_slot" .. slot
 end
 
 local function defaultData()
@@ -109,7 +119,28 @@ local function sanitize(raw)
 	return data
 end
 
-function PlayerData.load(player: Player)
+-- A quick look at every save slot, for the "choose a save" screen.
+-- Returns { [slot] = data or false (empty) }, or nil if saving is off.
+function PlayerData.peek(player: Player)
+	if not store then
+		return nil
+	end
+	local slots = {}
+	for slot = 1, PlayerData.SLOT_COUNT do
+		local ok, result = pcall(function()
+			return store:GetAsync(keyFor(player, slot))
+		end)
+		slots[slot] = if ok and result ~= nil then sanitize(result) else false
+	end
+	return slots
+end
+
+function PlayerData.getSlot(player: Player): number?
+	return slotOf[player]
+end
+
+function PlayerData.load(player: Player, slot: number)
+	slotOf[player] = slot
 	if not store then
 		canSave[player] = false
 		return defaultData()
@@ -117,7 +148,7 @@ function PlayerData.load(player: Player)
 
 	for attempt = 1, 3 do
 		local ok, result = pcall(function()
-			return store:GetAsync(keyFor(player))
+			return store:GetAsync(keyFor(player, slot))
 		end)
 		if ok then
 			canSave[player] = true
@@ -137,7 +168,8 @@ function PlayerData.isSaving(player: Player): boolean
 end
 
 function PlayerData.save(player: Player, data): boolean
-	if not store or not canSave[player] then
+	local slot = slotOf[player]
+	if not store or not canSave[player] or not slot then
 		return false
 	end
 
@@ -153,7 +185,7 @@ function PlayerData.save(player: Player, data): boolean
 	}
 
 	local ok, err = pcall(function()
-		store:SetAsync(keyFor(player), payload, { player.UserId })
+		store:SetAsync(keyFor(player, slot), payload, { player.UserId })
 	end)
 	if not ok then
 		warn("[PlayerData] Save failed for " .. player.Name .. ":", err)
@@ -163,6 +195,7 @@ end
 
 function PlayerData.forget(player: Player)
 	canSave[player] = nil
+	slotOf[player] = nil
 end
 
 return PlayerData
