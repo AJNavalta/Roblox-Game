@@ -26,7 +26,7 @@ local player = Players.LocalPlayer
 local gui = Instance.new("ScreenGui")
 gui.Name = "TycoonHud"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = false
+gui.IgnoreGuiInset = true -- lets the bar sit right up in Roblox's top bar
 
 local function corner(parent, radius)
 	local c = Instance.new("UICorner")
@@ -51,8 +51,8 @@ end
 local panel = Instance.new("Frame")
 panel.Name = "Stats"
 panel.AnchorPoint = Vector2.new(0.5, 0)
-panel.Position = UDim2.new(0.5, 0, 0, 6)
-panel.Size = UDim2.new(0.9, 0, 0, 34)
+panel.Position = UDim2.new(0.5, 0, 0, 12) -- level with Roblox's own top buttons
+panel.Size = UDim2.new(0.62, 0, 0, 34) -- leaves room for the menu buttons in the corners
 panel.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
 panel.BackgroundTransparency = 0.2
 panel.Parent = gui
@@ -225,3 +225,25 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 end)
+
+-- Lot prompts: show each one only to the right people ----------------------------
+-- "Collect money" is just for the lot's owner. "Buy a lemonade" is just for
+-- visitors. The server says whether a prompt is "Active" (see PlotBuilder).
+local function watchPrompt(prompt: Instance)
+	if not prompt:IsA("ProximityPrompt") then
+		return
+	end
+	local function apply()
+		local active = prompt:GetAttribute("Active") == true
+		local isMine = prompt:GetAttribute("OwnerUserId") == player.UserId
+		local forOwner = prompt:GetAttribute("ForOwner") == true
+		prompt.Enabled = active and isMine == forOwner
+	end
+	prompt:GetAttributeChangedSignal("Active"):Connect(apply)
+	prompt:GetAttributeChangedSignal("OwnerUserId"):Connect(apply)
+	apply()
+end
+CollectionService:GetInstanceAddedSignal("LotPrompt"):Connect(watchPrompt)
+for _, prompt in CollectionService:GetTagged("LotPrompt") do
+	watchPrompt(prompt)
+end

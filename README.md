@@ -14,7 +14,7 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a home, sell lemo
 
 **How to play:**
 
-1. You spawn in the plaza in the middle of the city. Walk to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
+1. When you join, pick one of your **3 save files** (or start a new game in an empty one). The **💾 Saves** button under the cash bar lets you switch any time. Then walk from the plaza to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
    Everyone starts out living in a tiny **Garden Shed** (with a desk, a laptop and a camp bed) next to a driveway. Your lemonade stand is at the end of the driveway, and every Lemonade upgrade (more tanks, a better sign, advertising, a canopy...) improves that one stand. Its small round upgrade pads sit right next to the part they upgrade (the pad positions are `PAD_SPOTS` in `src/server/LemonadeStand.luau`). Customers walk up, grab a cup and leave.
 2. Walk onto glowing buttons to buy things. **Green** = you can afford it, **red** = not yet, **grey** = you need to buy something else first (the button tells you what).
 3. Every item earns money per second. A 💵 money icon floats above your lemonade stand showing how much is waiting. Walk up to the stand (or press **E** there) to collect it.
@@ -45,7 +45,9 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a home, sell lemo
 
    Homes are for show right now: they don't change your income.
 
-Your progress saves automatically, including your investments. With smart play it takes roughly 75 minutes to hit $1B.
+**Customers** wear real Roblox avatars, and some of them look like the players in your server. Real players can visit too: walk up to the front of someone else's lemonade stand and press **E** to buy a cup. You pay a few dollars and get a 20-second lemon speed rush, and the stand's owner gets double what you paid.
+
+Your progress saves automatically (in whichever save file you picked), including your investments. With smart play it takes roughly 75 minutes to hit $1B.
 
 ---
 
@@ -83,7 +85,7 @@ The city is built by code when you press Play, so you won't see it in the editor
 2. You spawn in the city plaza. Walk to a blue **FOR SALE** pad and step on it to claim that lot.
 3. Step on the free **Lemonade Pitcher** button.
 4. Wait a few seconds until a 💵 icon appears above the lemonade stand, then walk up to the stand (or press **E**). Your cash goes up in the bar at the top of the screen and in the player list.
-5. To test with several players: **Test** tab → **Clients and Servers** → pick 2 players → **Start**. Each player can claim a different lot.
+5. To test with several players: **Test** tab → **Clients and Servers** → pick 2 players → **Start**. Each player can claim a different lot, and buy lemonade at the other one's stand.
 
 ### 5. Turn on saving (optional, but needed to test saving)
 
@@ -153,6 +155,7 @@ src/
     Hud.client.luau         the slim bar at the top (cash, income, progress) and pop-ups
     Phone.client.luau       the phone, Bank, Market, Cars and the laptop desktop
     HomesApp.luau           the 🏠 Homes app on the laptop
+    SaveSlots.client.luau   the "choose your save" screen and the 💾 Saves button
 ```
 
 File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` becomes a **LocalScript**, and plain `.luau` becomes a **ModuleScript**.

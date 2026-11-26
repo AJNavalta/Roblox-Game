@@ -7,9 +7,9 @@
 	They use Roblox's standard walking, idle and wave animations, and find
 	their way around street lights and trees with PathfindingService.
 
-	Every customer looks a bit different: tall or short, slim or broad, with
-	their own skin tone, outfit (short or long sleeves, shorts or trousers),
-	hair and sometimes a hat, glasses or a backpack.
+	Customers wear real Roblox avatars: some look like the players in this
+	server, the rest like random Roblox accounts (see "Real Roblox avatars").
+	Offline, they get a simple home-made look instead.
 
 	They're just for show: they don't change your money (yet!). If you want
 	them to tip, Tycoon would be the place to add that.
@@ -211,15 +211,89 @@ local function addHeadwear(rig: Model)
 	end
 end
 
+-- Real Roblox avatars --------------------------------------------------------
+-- Customers wear real Roblox avatars (with their real clothes, hair and
+-- accessories). Some are copies of the players in this server, so you might
+-- spot yourself or a friend buying your lemonade! The rest are borrowed from
+-- random Roblox accounts. If Roblox can't be reached (like in an offline
+-- Studio test), customers get the simple home-made look below instead.
+
+local AVATAR_POOL_SIZE = 30 -- how many random avatars to keep ready
+local PLAYER_LOOK_CHANCE = 0.3 -- chance a customer looks like someone in the server
+
+local avatarPool: { HumanoidDescription } = {}
+local playerLooks: { [number]: HumanoidDescription } = {} -- [userId] = their avatar
+
+local function fetchDescription(userId: number): HumanoidDescription?
+	local ok, description = pcall(function()
+		return Players:GetHumanoidDescriptionFromUserId(userId)
+	end)
+	if ok and description then
+		-- No custom animations or emotes: customers use the standard ones
+		for _, property in { "ClimbAnimation", "FallAnimation", "IdleAnimation", "JumpAnimation", "RunAnimation", "SwimAnimation", "WalkAnimation" } do
+			pcall(function()
+				(description :: any)[property] = 0
+			end)
+		end
+		return description
+	end
+	return nil
+end
+
+-- Slowly fills the pool in the background (Roblox limits how fast we can ask)
+local function fillAvatarPool()
+	local failures = 0
+	while #avatarPool < AVATAR_POOL_SIZE and failures < 40 do
+		-- Older accounts are more likely to still exist and be dressed up
+		local description = fetchDescription(rng:NextInteger(1_000_000, 4_000_000_000))
+		if description then
+			table.insert(avatarPool, description)
+		else
+			failures += 1
+		end
+		task.wait(0.5)
+	end
+end
+
+local function rememberPlayerLook(player: Player)
+	task.spawn(function()
+		local description = fetchDescription(player.UserId)
+		if description and player.Parent then
+			playerLooks[player.UserId] = description
+		end
+	end)
+end
+
+local function pickAvatar(): HumanoidDescription?
+	if rng:NextNumber() < PLAYER_LOOK_CHANCE then
+		local looks = {}
+		for _, description in playerLooks do
+			table.insert(looks, description)
+		end
+		if #looks > 0 then
+			return pick(looks):Clone()
+		end
+	end
+	if #avatarPool > 0 then
+		return pick(avatarPool):Clone()
+	end
+	return nil
+end
+
+local dressUp -- defined below makeRig
+
 local function makeRig(): Model?
-	local description = Instance.new("HumanoidDescription")
-	-- Body shape: tall or short, slim or broad
-	description.HeightScale = rng:NextNumber(0.85, 1.1)
-	description.WidthScale = rng:NextNumber(0.75, 1.0)
-	description.DepthScale = rng:NextNumber(0.85, 1.0)
-	description.HeadScale = rng:NextNumber(0.95, 1.0)
-	description.BodyTypeScale = rng:NextNumber(0, 0.6)
-	description.ProportionScale = rng:NextNumber(0, 1)
+	local avatar = pickAvatar()
+	local description = avatar or Instance.new("HumanoidDescription")
+	if not avatar then
+		-- Home-made look. Body shape: tall or short, slim or broad
+		description.HeightScale = rng:NextNumber(0.85, 1.1)
+		description.WidthScale = rng:NextNumber(0.75, 1.0)
+		description.DepthScale = rng:NextNumber(0.85, 1.0)
+		description.HeadScale = rng:NextNumber(0.95, 1.0)
+		description.BodyTypeScale = rng:NextNumber(0, 0.6)
+		description.ProportionScale = rng:NextNumber(0, 1)
+	end
 
 	local ok, rig = pcall(function()
 		return Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
@@ -229,6 +303,29 @@ local function makeRig(): Model?
 		return nil
 	end
 
+	if not avatar then
+		dressUp(rig)
+	end
+
+	rig.Name = "Customer"
+	local humanoid = rig:FindFirstChildOfClass("Humanoid")
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.WalkSpeed = rng:NextNumber(8, 12)
+	for _, descendant in rig:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.CollisionGroup = COLLISION_GROUP
+			descendant.CanQuery = false
+			if descendant.Parent and descendant.Parent:IsA("Accessory") then
+				descendant.CanCollide = false
+				descendant.Massless = true
+			end
+		end
+	end
+	return rig
+end
+
+-- The home-made look: coloured clothes, hair and hats made from parts
+dressUp = function(rig: Model)
 	-- Outfit: we colour each body part ourselves, so sleeves and shorts work
 	local bodyColors = rig:FindFirstChildOfClass("BodyColors")
 	if bodyColors then
@@ -264,16 +361,6 @@ local function makeRig(): Model?
 		end
 	end
 
-	rig.Name = "Customer"
-	local humanoid = rig:FindFirstChildOfClass("Humanoid")
-	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-	humanoid.WalkSpeed = rng:NextNumber(8, 12)
-	for _, descendant in rig:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			descendant.CollisionGroup = COLLISION_GROUP
-		end
-	end
-
 	addHeadwear(rig)
 	local torso = rig:FindFirstChild("UpperTorso") :: BasePart?
 	if torso and rng:NextNumber() < 0.25 then
@@ -281,7 +368,6 @@ local function makeRig(): Model?
 		local size = torso.Size
 		addPiece(rig, torso, Vector3.new(size.X * 0.7, size.Y * 0.85, 0.6), CFrame.new(0, 0, size.Z / 2 + 0.3), pick(HAT_COLORS))
 	end
-	return rig
 end
 
 -- A speech bubble over the customer's head
@@ -509,6 +595,16 @@ end
 
 function Customers.start()
 	local lots = {} -- [plot] = { Spots = { [spotIndex] = rig }, NextVisit = time }
+
+	-- Get the real avatars ready
+	task.spawn(fillAvatarPool)
+	Players.PlayerAdded:Connect(rememberPlayerLook)
+	for _, player in Players:GetPlayers() do
+		rememberPlayerLook(player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		playerLooks[player.UserId] = nil
+	end)
 
 	task.spawn(function()
 		while true do
