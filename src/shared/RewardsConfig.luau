@@ -2,7 +2,7 @@
 	RewardsConfig.luau
 	==================
 	Settings for the three buttons on the left side of the screen:
-	  🎡 Hourly Spin   a free spin of the prize wheel every hour
+	  🎡 Spin          free prize wheel spins, waits grow 1 → 30 min
 	  🎁 Daily Reward  come back every day for a bigger reward (7-day streak)
 	  💰 Cash Shop     buy cash with Robux (Developer Products)
 
@@ -17,7 +17,15 @@
 local RewardsConfig = {}
 
 -- 🎡 Hourly spin ----------------------------------------------------------------
-RewardsConfig.SpinCooldown = 60 * 60 -- seconds between free spins (1 hour)
+-- Wait after each spin, in minutes. The 1st spin is free right away, then
+-- 1 min, 2, 5, 10, 15, then 30 min for every spin after that (the last
+-- number repeats). It starts over each time the player joins the game.
+RewardsConfig.SpinCooldowns = { 1, 2, 5, 10, 15, 30 }
+
+function RewardsConfig.spinCooldown(spinsSoFar: number): number
+	local list = RewardsConfig.SpinCooldowns
+	return list[math.clamp(spinsSoFar, 1, #list)] * 60 -- seconds
+end
 
 -- The wheel's slices, clockwise from the top. Weight = how likely it is
 -- (bigger = more common). They don't need to add up to anything.
