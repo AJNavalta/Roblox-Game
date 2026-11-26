@@ -22,6 +22,7 @@ local Homes = require(script.Parent.Homes)
 local Market = require(script.Parent.Market)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
+local Rewards = require(script.Parent.Rewards)
 local Tycoon = require(script.Parent.Tycoon)
 
 -- The server uses this to send pop-up messages to a player's screen.
@@ -33,6 +34,7 @@ Market.init(Tycoon, notifyEvent) -- the phone's stock market, crypto and NFTs
 Garage.init(Tycoon) -- the phone's car shop
 Homes.init(Tycoon, notifyEvent) -- the laptop's Homes app: buy and move into homes
 DevTools.init(Tycoon, notifyEvent) -- testing cheat: /money for the developer only
+Rewards.init(Tycoon, notifyEvent) -- left-side buttons: hourly spin, daily reward, Robux cash shop
 
 -- Build the world -----------------------------------------------------------
 

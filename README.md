@@ -155,6 +155,39 @@ The car shop builds simple block cars from code. You can swap any of them for a 
 * **Safety:** free models can hide bad scripts. After inserting one, expand it in the Explorer and delete any script that isn't clearly part of the car (look for names like "Backdoor", "Virus", "Spread", "Loader", or scripts that use `require(` with a long number). Stick to well-rated, verified creators.
 * Rojo doesn't touch **ServerStorage**, so your models stay put when you sync. They live in the place file, so **publish the place** (File → Publish to Roblox) to keep them.
 
+## Rewards, Robux shop and badges (left side of the screen)
+
+Four buttons sit on the left side:
+
+* **🎡 Spin**: a free prize wheel every hour. Prizes grow with your income and how many upgrades you own.
+* **🎁 Daily**: a reward every day (after 20 hours). Claim days in a row for a bigger reward, up to 10x on day 7. Miss two days and the streak restarts.
+* **💰 Cash Shop**: buy cash with Robux. The cash you get grows with your income.
+* **🏆 Badges**: milestone badges for total cash earned (Getting Started, $1K, $10K, $100K, $500K, $1M ... $1B). A pop-up shows when you unlock one.
+
+All the numbers are in **`src/shared/RewardsConfig.luau`**.
+
+### Turning on the Robux Cash Shop
+
+The shop says "Coming soon" until you create the products on Roblox:
+
+1. Publish the game (File → Publish to Roblox).
+2. Go to [create.roblox.com](https://create.roblox.com) → **Creations** → your game → **Monetization** → **Developer Products** → **Create a Developer Product**.
+3. Name it (e.g. "Bag of Cash"), set the Robux price, save, and copy the **Product ID**.
+4. In `src/shared/RewardsConfig.luau`, find `RewardsConfig.Products` and replace the `0` after `ProductId =` with your ID. Do this for each pack.
+5. Test in Studio: buying in Studio is free and doesn't charge real Robux.
+
+Purchases are safe: the cash is saved before Roblox is told the purchase went through, and each purchase is only ever paid out once.
+
+### Turning on real Roblox badges
+
+The 🏆 panel works without this. To also give players real badges on their Roblox profile:
+
+1. Go to create.roblox.com → **Creations** → your game → **Associated Items** → **Badges** → **Create a Badge**.
+2. Upload a square picture, give it the same name as in the game (e.g. "Millionaire"), and create it. Roblox lets you make a few badges for free each day; after that they cost Robux (the page shows the current price).
+3. Copy the **Badge ID** and paste it in place of the `0` after `BadgeId =` in `RewardsConfig.Milestones`.
+
+Players who already unlocked a milestone get the real badge the next time they join.
+
 ## How the code is organised
 
 ```
