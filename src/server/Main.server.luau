@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local CityBuilder = require(script.Parent.CityBuilder)
 local Customers = require(script.Parent.Customers)
+local Garage = require(script.Parent.Garage)
 local Market = require(script.Parent.Market)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
@@ -27,6 +28,7 @@ notifyEvent.Name = "TycoonNotify"
 notifyEvent.Parent = ReplicatedStorage
 Tycoon.init(notifyEvent)
 Market.init(Tycoon, notifyEvent) -- the phone's stock market, crypto and NFTs
+Garage.init(Tycoon) -- the phone's car shop
 
 -- Build the world -----------------------------------------------------------
 
