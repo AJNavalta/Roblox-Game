@@ -106,7 +106,11 @@ local function refresh(session)
 	player:SetAttribute("StageIndex", stageIndex)
 	player:SetAttribute("StageName", Config.Stages[stageIndex].Name)
 
-	plot.CollectorLabel.Text = "Cash Collector\n" .. Format.money(data.Pending)
+	-- The 💵 icon over the lemonade stand shows what's waiting to be collected
+	local waiting = math.floor(data.Pending)
+	plot.CollectorLabel.Text = Format.money(waiting)
+	plot.CollectorIcon.Enabled = waiting >= 1
+	plot.CollectorPrompt.Enabled = waiting >= 1
 
 	for index, stage in Config.Stages do
 		local unlocked, have, need = Progression.stageUnlock(owned, index)
@@ -165,10 +169,16 @@ function Tycoon.attachPlot(plot)
 		end)
 	end
 
+	-- Collect money by walking up to the lemonade stand, or pressing E there
 	plot.Collector.Touched:Connect(function(hit)
 		local player = playerFromHit(hit)
 		local session = player and sessions[player]
 		if session and plot.Owner == player and cooldownReady(session, "collector") then
+			Tycoon.collect(player)
+		end
+	end)
+	plot.CollectorPrompt.Triggered:Connect(function(player)
+		if sessions[player] and plot.Owner == player then
 			Tycoon.collect(player)
 		end
 	end)

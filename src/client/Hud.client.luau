@@ -1,14 +1,18 @@
 --[[
 	Hud.client.luau
-	The on-screen display: cash, income per second, current business,
-	a "road to $1B" bar, and pop-up messages from the server.
+	The on-screen display: one slim bar along the top with your cash,
+	income per second, current business and a "road to $1B" bar, plus
+	pop-up messages from the server. (Money waiting to be collected floats
+	above your lemonade stand, see src/server/Tycoon.luau.)
 
 	This script only SHOWS numbers. All money changes happen on the server
 	(see src/server/Tycoon.luau).
 ]]
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -42,39 +46,45 @@ local function textLabel(props)
 	return label
 end
 
+-- One slim bar across the top of the screen:
+--   💵 cash  |  +income/s  |  🍋 business  |  road to $1B bar
 local panel = Instance.new("Frame")
 panel.Name = "Stats"
 panel.AnchorPoint = Vector2.new(0.5, 0)
-panel.Position = UDim2.new(0.5, 0, 0, 8)
-panel.Size = UDim2.fromOffset(320, 118)
+panel.Position = UDim2.new(0.5, 0, 0, 6)
+panel.Size = UDim2.new(0.9, 0, 0, 34)
 panel.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
-panel.BackgroundTransparency = 0.15
+panel.BackgroundTransparency = 0.2
 panel.Parent = gui
-corner(panel, 12)
+corner(panel, 17)
+local sizeLimit = Instance.new("UISizeConstraint")
+sizeLimit.MaxSize = Vector2.new(680, 34)
+sizeLimit.Parent = panel
 
 local cashLabel = textLabel({
 	Name = "Cash",
-	Position = UDim2.fromOffset(12, 6),
-	Size = UDim2.new(1, -24, 0, 40),
+	Position = UDim2.new(0.02, 0, 0, 4),
+	Size = UDim2.new(0.21, 0, 1, -8),
 	TextColor3 = Color3.fromRGB(120, 255, 140),
-	Text = "$0",
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Text = "💵 $0",
 	Parent = panel,
 })
 
 local incomeLabel = textLabel({
 	Name = "Income",
-	Position = UDim2.fromOffset(12, 48),
-	Size = UDim2.new(1, -24, 0, 18),
-	Font = Enum.Font.Gotham,
+	Position = UDim2.new(0.24, 0, 0, 8),
+	Size = UDim2.new(0.15, 0, 1, -16),
+	Font = Enum.Font.GothamMedium,
 	Text = "+$0/s",
 	Parent = panel,
 })
 
 local stageLabel = textLabel({
 	Name = "Stage",
-	Position = UDim2.fromOffset(12, 68),
-	Size = UDim2.new(1, -24, 0, 18),
-	Font = Enum.Font.Gotham,
+	Position = UDim2.new(0.4, 0, 0, 8),
+	Size = UDim2.new(0.33, 0, 1, -16),
+	Font = Enum.Font.GothamMedium,
 	TextColor3 = Color3.fromRGB(255, 230, 120),
 	Text = "",
 	Parent = panel,
@@ -82,20 +92,22 @@ local stageLabel = textLabel({
 
 local barBack = Instance.new("Frame")
 barBack.Name = "GoalBar"
-barBack.Position = UDim2.fromOffset(12, 92)
-barBack.Size = UDim2.new(1, -24, 0, 16)
+barBack.AnchorPoint = Vector2.new(0, 0.5)
+barBack.Position = UDim2.new(0.75, 0, 0.5, 0)
+barBack.Size = UDim2.new(0.23, 0, 0, 18)
 barBack.BackgroundColor3 = Color3.fromRGB(50, 52, 62)
 barBack.Parent = panel
-corner(barBack, 8)
+corner(barBack, 9)
 
 local barFill = Instance.new("Frame")
 barFill.Size = UDim2.fromScale(0, 1)
 barFill.BackgroundColor3 = Color3.fromRGB(255, 200, 40)
 barFill.Parent = barBack
-corner(barFill, 8)
+corner(barFill, 9)
 
 textLabel({
-	Size = UDim2.fromScale(1, 1),
+	Position = UDim2.fromOffset(0, 2),
+	Size = UDim2.new(1, 0, 1, -4),
 	Font = Enum.Font.GothamBold,
 	TextColor3 = Color3.new(1, 1, 1),
 	TextStrokeTransparency = 0.4,
@@ -133,16 +145,15 @@ end
 local function update()
 	local cash = getCash()
 	local income = player:GetAttribute("Income") or 0
-	local pending = player:GetAttribute("Pending") or 0
 	local stageIndex = player:GetAttribute("StageIndex") or 1
 	local stageName = player:GetAttribute("StageName") or Config.Stages[1].Name
 
-	cashLabel.Text = Format.money(cash)
-	incomeLabel.Text = ("+%s/s   ·   %s waiting at your collector"):format(Format.money(income), Format.money(pending))
+	cashLabel.Text = "💵 " .. Format.money(cash)
+	incomeLabel.Text = "+" .. Format.money(income) .. "/s"
 	if player:GetAttribute("HasLot") then
-		stageLabel.Text = ("Business %d/%d: %s"):format(stageIndex, #Config.Stages, stageName)
+		stageLabel.Text = ("🍋 %s (%d/%d)"):format(stageName, stageIndex, #Config.Stages)
 	else
-		stageLabel.Text = "Step on a blue FOR SALE pad to claim a lot!"
+		stageLabel.Text = "Step on a blue FOR SALE pad!"
 	end
 
 	-- Log scale so the bar moves early on instead of sitting at 0% for ages
@@ -150,7 +161,7 @@ local function update()
 	barFill.Size = UDim2.fromScale(progress, 1)
 end
 
-for _, attribute in { "Income", "Pending", "StageIndex", "StageName", "HasLot" } do
+for _, attribute in { "Income", "StageIndex", "StageName", "HasLot" } do
 	player:GetAttributeChangedSignal(attribute):Connect(update)
 end
 
@@ -203,3 +214,14 @@ end
 
 local notifyEvent = ReplicatedStorage:WaitForChild("TycoonNotify")
 notifyEvent.OnClientEvent:Connect(showToast)
+
+-- 💵 money icons over lemonade stands gently bob up and down --------------------
+-- (done here on your screen so it's smooth and costs the server nothing)
+RunService.RenderStepped:Connect(function()
+	local bob = math.sin(os.clock() * 2.5) * 0.4
+	for _, icon in CollectionService:GetTagged("CashIcon") do
+		if icon:IsA("BillboardGui") and icon.Enabled then
+			icon.StudsOffset = Vector3.new(0, 7 + bob, 0)
+		end
+	end
+end)

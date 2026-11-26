@@ -3,11 +3,12 @@
 	The phone in the bottom-right corner (click it or press P).
 
 	Apps:
-	  🏦 Bank    your cash, money waiting at the collector, investments, net worth
+	  🏦 Bank    your cash, money waiting at your stand, investments, net worth
 	  📈 Stocks  opens the big Market window (Stocks, Crypto, NFTs, My Portfolio)
 	  🪙 Crypto  same window, Crypto tab
 	  🖼️ NFTs    same window, NFTs tab
 	  🚗 Cars    the car shop: buy vehicles, spawn them on your driveway
+	  🏠 Homes   laptop only: buy a bigger home and move in (HomesApp.luau)
 
 	The laptop in your house opens the same apps in a big desktop view
 	(see "Laptop workstation" below).
@@ -27,6 +28,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Format = require(Shared:WaitForChild("Format"))
 local MarketConfig = require(Shared:WaitForChild("MarketConfig"))
 local VehicleConfig = require(Shared:WaitForChild("VehicleConfig"))
+local HomesApp = require(script.Parent:WaitForChild("HomesApp"))
 
 local marketRequest = ReplicatedStorage:WaitForChild("MarketRequest") :: RemoteFunction
 local marketPrices = ReplicatedStorage:WaitForChild("MarketPrices") :: RemoteEvent
@@ -400,7 +402,7 @@ local function bankRow(order: number, name: string)
 	})
 end
 
-local bankPending = bankRow(1, "At collector")
+local bankPending = bankRow(1, "At your stand")
 local bankInvested = bankRow(2, "Investments")
 local bankProfit = bankRow(3, "Profit / loss")
 local bankIncome = bankRow(4, "Income")
@@ -1292,6 +1294,7 @@ local deskStocksIcon = desktopIcon(2, "📈", "Stocks")
 local deskCryptoIcon = desktopIcon(3, "🪙", "Crypto")
 local deskNftIcon = desktopIcon(4, "🖼️", "NFTs")
 local deskCarsIcon = desktopIcon(5, "🚗", "Cars")
+local deskHomesIcon = desktopIcon(6, "🏠", "Homes")
 
 -- The Bank, as a big window on the desktop
 local bankWindow = make("Frame", {
@@ -1335,7 +1338,7 @@ local function bigStat(x: number, y: number, title: string, color: Color3)
 end
 
 local deskCash = bigStat(20, 60, "Cash balance", GREEN)
-local deskPending = bigStat(264, 60, "Waiting at your collector", Color3.new(1, 1, 1))
+local deskPending = bigStat(264, 60, "Waiting at your stand", Color3.new(1, 1, 1))
 local deskIncome = bigStat(508, 60, "Income", Color3.new(1, 1, 1))
 local deskInvested = bigStat(20, 170, "Investments", Color3.new(1, 1, 1))
 local deskProfit = bigStat(264, 170, "Investment profit / loss", GREEN)
@@ -1377,6 +1380,22 @@ table.insert(bankListeners, function(cash, pending, value, cost)
 		else ("%s more to reach %s"):format(Format.money(goal - netWorth), Format.money(goal))
 end)
 
+-- The 🏠 Homes app (src/client/HomesApp.luau): buy homes and move between them
+local homesWindow = HomesApp.create(wallpaper)
+local function hideHomes()
+	homesWindow.Visible = false
+end
+market:GetPropertyChangedSignal("Visible"):Connect(function()
+	if market.Visible then
+		hideHomes()
+	end
+end)
+carsWindow:GetPropertyChangedSignal("Visible"):Connect(function()
+	if carsWindow.Visible then
+		hideHomes()
+	end
+end)
+
 local function setDesktopOpen(open: boolean)
 	desktop.Visible = open
 	if open then
@@ -1385,6 +1404,7 @@ local function setDesktopOpen(open: boolean)
 	else
 		market.Visible = false
 		carsWindow.Visible = false
+		homesWindow.Visible = false
 	end
 end
 
@@ -1394,6 +1414,12 @@ end)
 deskBankIcon.Activated:Connect(function()
 	market.Visible = false
 	carsWindow.Visible = false
+	hideHomes()
+end)
+deskHomesIcon.Activated:Connect(function()
+	market.Visible = false
+	carsWindow.Visible = false
+	homesWindow.Visible = true
 end)
 deskStocksIcon.Activated:Connect(function()
 	carsWindow.Visible = false
