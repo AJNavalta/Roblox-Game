@@ -6,7 +6,7 @@
 	Everything is decided here on the server: the spin result, whether a
 	reward is ready, and how much cash a Robux purchase gives. Saved fields
 	(in the player's save slot):
-	  LastSpin     os.time() of their last spin
+	  (spin timers aren't saved: the 1, 2, 5... minute ladder restarts each visit)
 	  LastDaily    os.time() of their last daily claim
 	  DailyStreak  how many days in a row they've claimed
 	  Receipts     IDs of Robux purchases already paid out (so a purchase
@@ -34,6 +34,8 @@ local Rewards = {}
 local Tycoon = nil
 local notifyEvent: RemoteEvent? = nil
 local rng = Random.new()
+local spinsThisVisit = {} -- [Player] = spins since they joined
+local nextSpinAt = {} -- [Player] = os.time() when their next spin is ready
 
 local MAX_RECEIPTS = 50 -- how many past purchase IDs we remember per save
 local milestoneEvent: RemoteEvent? = nil
@@ -98,7 +100,7 @@ local function status(session)
 		Ok = true,
 		TotalEarned = data.TotalEarned or 0,
 		Milestones = milestones,
-		SpinIn = math.max(0, (data.LastSpin or 0) + RewardsConfig.SpinCooldown - now),
+		SpinIn = math.max(0, (nextSpinAt[session.Player] or 0) - now),
 		DailyIn = math.max(0, (data.LastDaily or 0) + RewardsConfig.DailyCooldown - now),
 		DailyDay = day, -- the day they'd be claiming next
 		SpinAmounts = spinAmounts,
@@ -125,7 +127,7 @@ end
 local function spin(player: Player, session)
 	local data = session.Data
 	local now = os.time()
-	local wait = (data.LastSpin or 0) + RewardsConfig.SpinCooldown - now
+	local wait = (nextSpinAt[player] or 0) - now
 	if wait > 0 then
 		return { Ok = false, Message = "Next spin in " .. math.ceil(wait / 60) .. " min." }
 	end
@@ -133,7 +135,9 @@ local function spin(player: Player, session)
 	local index = pickPrize()
 	local prize = RewardsConfig.SpinPrizes[index]
 	local amount = RewardsConfig.amount(prize, incomeOf(session), upgradeCount(data))
-	data.LastSpin = now
+	local count = (spinsThisVisit[player] or 0) + 1
+	spinsThisVisit[player] = count
+	nextSpinAt[player] = now + RewardsConfig.spinCooldown(count)
 	Tycoon.changeCash(player, amount)
 
 	local result = status(session)
@@ -330,6 +334,8 @@ function Rewards.init(tycoonModule, remote: RemoteEvent)
 	Players.PlayerRemoving:Connect(function(player)
 		lastRequest[player] = nil
 		seen[player] = nil
+		spinsThisVisit[player] = nil
+		nextSpinAt[player] = nil
 	end)
 end
 

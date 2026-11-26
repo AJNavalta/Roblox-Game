@@ -1,7 +1,7 @@
 --[[
 	Rewards.client.luau
 	The three buttons stacked on the left side of the screen:
-	  🎡 Spin    free prize wheel every hour
+	  🎡 Spin    free prize wheel (waits grow 1 → 30 min)
 	  🎁 Daily   daily reward with a 7-day streak
 	  💰 Shop    buy cash with Robux
 	  🏆 Badges  milestone badges for total cash earned
@@ -191,7 +191,7 @@ local spinning = false
 
 -- 🎡 Spin window ------------------------------------------------------------------
 
-local spinWindow, spinScale, SPIN_W, SPIN_H = window("Spin", 440, 520, "🎡 Hourly Spin")
+local spinWindow, spinScale, SPIN_W, SPIN_H = window("Spin", 440, 520, "🎡 Prize Spin")
 
 local WHEEL = 320
 local wheel = make("Frame", {
@@ -286,7 +286,7 @@ local spinMessage = label({
 	Size = UDim2.new(1, -40, 0, 26),
 	Font = Enum.Font.GothamMedium,
 	TextColor3 = TEXT_DIM,
-	Text = "A free spin every hour. Prizes grow with your business!",
+	Text = "Free spins! Short waits at first, then every 30 min. Prizes grow with your business!",
 	Parent = spinWindow,
 })
 

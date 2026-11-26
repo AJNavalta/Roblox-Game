@@ -161,7 +161,7 @@ The car shop builds simple block cars from code. You can swap any of them for a 
 
 Four buttons sit on the left side:
 
-* **🎡 Spin**: a free prize wheel every hour. Prizes grow with your income and how many upgrades you own.
+* **🎡 Spin**: a free prize wheel. Your first spin each visit is free right away, then you wait 1 min, 2, 5, 10, 15, and 30 min for every spin after that (change the list `SpinCooldowns` in `RewardsConfig.luau`). The waits start over each time you join. Prizes grow with your income and how many upgrades you own.
 * **🎁 Daily**: a reward every day (after 20 hours). Claim days in a row for a bigger reward, up to 10x on day 7. Miss two days and the streak restarts.
 * **💰 Cash Shop**: buy cash with Robux. The cash you get grows with your income.
 * **🏆 Badges**: milestone badges for total cash earned (Getting Started, $1K, $10K, $100K, $500K, $1M ... $1B). A pop-up shows when you unlock one.
