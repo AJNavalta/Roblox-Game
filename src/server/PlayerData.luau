@@ -12,6 +12,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local HomeConfig = require(ReplicatedStorage.Shared.HomeConfig)
 local MarketConfig = require(ReplicatedStorage.Shared.MarketConfig)
 local VehicleConfig = require(ReplicatedStorage.Shared.VehicleConfig)
 
@@ -45,6 +46,8 @@ local function defaultData()
 		Billionaire = false,
 		Portfolio = {}, -- stocks, crypto and NFTs: [assetId] = { Shares, Cost }
 		Vehicles = {}, -- cars bought in the phone: [vehicleId] = true
+		Home = HomeConfig.StartingHome, -- the home you live in (see HomeConfig)
+		Homes = { [HomeConfig.StartingHome] = true }, -- homes you own: [homeId] = true
 	}
 end
 
@@ -85,6 +88,16 @@ local function sanitize(raw)
 				data.Portfolio[assetId] = { Shares = holding.Shares, Cost = cost }
 			end
 		end
+	end
+	if type(raw.Homes) == "table" then
+		for homeId, owned in raw.Homes do
+			if HomeConfig.HomesById[homeId] and owned == true then
+				data.Homes[homeId] = true
+			end
+		end
+	end
+	if type(raw.Home) == "string" and data.Homes[raw.Home] then
+		data.Home = raw.Home
 	end
 	if type(raw.Vehicles) == "table" then
 		for vehicleId, owned in raw.Vehicles do
@@ -135,6 +148,8 @@ function PlayerData.save(player: Player, data): boolean
 		Billionaire = data.Billionaire,
 		Portfolio = data.Portfolio,
 		Vehicles = data.Vehicles,
+		Home = data.Home,
+		Homes = data.Homes,
 	}
 
 	local ok, err = pcall(function()

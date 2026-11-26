@@ -10,7 +10,7 @@
 	    [ Car Dealership      ]
 	    [ Clothing Brand      ]
 	    [   house    | garage ]   (HomeBuilder)
-	   collector  path  stand  driveway
+	              path  stand  driveway   (💵 money floats above the stand)
 	           (claim pad) (pads)
 	  ======== main avenue ========
 
@@ -22,10 +22,12 @@
 	building block appears in the slot. Upgrading makes the block taller.
 ]]
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local HomeConfig = require(ReplicatedStorage.Shared.HomeConfig)
 local HomeBuilder = require(script.Parent.HomeBuilder)
 local LemonadeStand = require(script.Parent.LemonadeStand)
 
@@ -198,10 +200,13 @@ function PlotBuilder.build(index: number)
 		Parent = model,
 	})
 
-	-- The house, driveway, garage, and the laptop workstation inside
-	local home = HomeBuilder.build(model, at)
-	plot.Laptop = home.Laptop
-	plot.CarSpawn = home.CarSpawn
+	-- Driveway, front path and car spawn (these never change)
+	local grounds = HomeBuilder.buildGrounds(model, at)
+	plot.CarSpawn = grounds.CarSpawn
+	plot.At = at
+
+	-- The home itself (everyone starts in the Garden Shed)
+	PlotBuilder.setHome(plot, HomeConfig.StartingHome)
 
 	-- Claim pad: step on it to make this lot yours
 	local claimPad = makePart({
@@ -214,17 +219,60 @@ function PlotBuilder.build(index: number)
 	plot.ClaimPad = claimPad
 	plot.ClaimLabel = makeLabel(claimPad, "", 7, nil, 18, 4)
 
-	-- Cash collector
+	-- Collecting money: no pad. Money floats above the lemonade stand as a
+	-- 💵 icon, and you walk up to the stand (or press E there) to collect it.
+	local standCFrame = LemonadeStand.getCFrame({ Origin = origin })
 	local collector = makePart({
 		Name = "Collector",
-		Size = Vector3.new(8, 1, 8),
-		CFrame = at(-17, 1.5, CLAIM_Z),
-		Color = Color3.fromRGB(255, 200, 40),
-		Material = Enum.Material.Neon,
+		Size = Vector3.new(13, 7, 6),
+		CFrame = standCFrame * CFrame.new(0, 3.5, -3), -- the counter and just behind it
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
 		Parent = model,
 	})
+	local collectPrompt = Instance.new("ProximityPrompt")
+	collectPrompt.Name = "CollectPrompt"
+	collectPrompt.ActionText = "Collect money"
+	collectPrompt.ObjectText = "Lemonade Stand"
+	collectPrompt.HoldDuration = 0
+	collectPrompt.MaxActivationDistance = 12
+	collectPrompt.RequiresLineOfSight = false
+	collectPrompt.Enabled = false
+	collectPrompt.Parent = collector
+
+	local icon = Instance.new("BillboardGui")
+	icon.Name = "CashIcon"
+	icon.Size = UDim2.fromScale(5, 4.2)
+	icon.StudsOffset = Vector3.new(0, 7, 0)
+	icon.MaxDistance = 150
+	icon.LightInfluence = 0
+	icon.Enabled = false
+	icon.Adornee = collector
+	local emoji = Instance.new("TextLabel")
+	emoji.Size = UDim2.fromScale(1, 0.62)
+	emoji.BackgroundTransparency = 1
+	emoji.TextScaled = true
+	emoji.Font = Enum.Font.GothamBold
+	emoji.Text = "💵"
+	emoji.Parent = icon
+	local amount = Instance.new("TextLabel")
+	amount.Position = UDim2.fromScale(0, 0.62)
+	amount.Size = UDim2.fromScale(1, 0.38)
+	amount.BackgroundTransparency = 1
+	amount.TextScaled = true
+	amount.Font = Enum.Font.FredokaOne
+	amount.TextColor3 = Color3.fromRGB(140, 255, 140)
+	amount.TextStrokeTransparency = 0.1
+	amount.Text = "$0"
+	amount.Parent = icon
+	icon.Parent = collector
+	CollectionService:AddTag(icon, "CashIcon") -- the HUD script makes these bob up and down
+
 	plot.Collector = collector
-	plot.CollectorLabel = makeLabel(collector, "", 5, Color3.fromRGB(140, 255, 140), 12)
+	plot.CollectorLabel = amount
+	plot.CollectorIcon = icon
+	plot.CollectorPrompt = collectPrompt
 
 	-- Lemonade: a sign post beside the stand's upgrade pads
 	local lemonade = Config.Stages[1]
@@ -350,6 +398,22 @@ function PlotBuilder.setItemVisual(plot, info, level: number)
 	makeLabel(labelAnchor, title .. "\n" .. table.concat(perks, "  "), height / 2 + 2.5, Color3.new(1, 1, 1), 13, 3.5)
 end
 
+-- Swaps the lot's home for another one (an Id from HomeConfig).
+function PlotBuilder.setHome(plot, homeId: string)
+	if plot.HomeId == homeId and plot.HomeModel then
+		return
+	end
+	if plot.HomeModel then
+		plot.HomeModel:Destroy()
+	end
+	local model, laptop = HomeBuilder.buildHouse(homeId, plot.At)
+	laptop:SetAttribute("OwnerUserId", if plot.Owner then plot.Owner.UserId else 0)
+	model.Parent = plot.Model
+	plot.HomeModel = model
+	plot.HomeId = homeId
+	plot.Laptop = laptop
+end
+
 -- Gives the lot to `player`, or frees it up again when `player` is nil.
 function PlotBuilder.setOwner(plot, player: Player?)
 	plot.Owner = player
@@ -372,7 +436,10 @@ function PlotBuilder.setOwner(plot, player: Player?)
 		for _, button in plot.Buttons do
 			button.Part.Parent = nil
 		end
-		plot.CollectorLabel.Text = "Cash Collector"
+		plot.CollectorLabel.Text = "$0"
+		plot.CollectorIcon.Enabled = false
+		plot.CollectorPrompt.Enabled = false
+		PlotBuilder.setHome(plot, HomeConfig.StartingHome)
 		for stageIndex, stage in Config.Stages do
 			plot.StageLabels[stageIndex].Text = stage.Name
 		end

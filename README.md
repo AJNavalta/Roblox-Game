@@ -15,9 +15,9 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a home, sell lemo
 **How to play:**
 
 1. You spawn in the plaza in the middle of the city. Walk to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
-   Each lot comes with a house (with a laptop workstation inside), a garage and a driveway. Your lemonade stand is at the end of the driveway, and every Lemonade upgrade (more tanks, a better sign, advertising, a canopy...) improves that one stand. Its small round upgrade pads sit right next to the part they upgrade (the pad positions are `PAD_SPOTS` in `src/server/LemonadeStand.luau`). Customers walk up, grab a cup and leave.
+   Everyone starts out living in a tiny **Garden Shed** (with a desk, a laptop and a camp bed) next to a driveway. Your lemonade stand is at the end of the driveway, and every Lemonade upgrade (more tanks, a better sign, advertising, a canopy...) improves that one stand. Its small round upgrade pads sit right next to the part they upgrade (the pad positions are `PAD_SPOTS` in `src/server/LemonadeStand.luau`). Customers walk up, grab a cup and leave.
 2. Walk onto glowing buttons to buy things. **Green** = you can afford it, **red** = not yet, **grey** = you need to buy something else first (the button tells you what).
-3. Every item earns money per second, which piles up on your gold **Cash Collector** pad. Step on it to bank the money.
+3. Every item earns money per second. A 💵 money icon floats above your lemonade stand showing how much is waiting. Walk up to the stand (or press **E** there) to collect it.
 4. It's not a straight line. You choose your path:
    * Several items are open at once, and some need others first (like a skill tree).
    * Some items can be **upgraded** several times. Their building grows taller each level.
@@ -26,10 +26,24 @@ A Roblox progression tycoon set in **Billionaire City**. Claim a home, sell lemo
    * You don't need to buy everything in a business to open the next one.
 
 5. **Your phone** 📱 sits in the bottom-right corner (click it or press **P**). It slides up with five apps:
-   * **🏦 Bank** shows your cash, money waiting at the collector, your investments, profit or loss, and net worth.
+   * **🏦 Bank** shows your cash, money waiting at your stand, your investments, profit or loss, and net worth.
    * **📈 Stocks**, **🪙 Crypto** and **🖼️ NFTs** open the big **Billionaire Exchange** window. Invest in 30 made-up companies, parody crypto like **BitBucks**, or NFT collections. Prices move every few seconds, sometimes with big news jumps. Type an amount (like `500` or `2.5k`) and press **BUY**. Press **SELL** or **SELL ALL** any time to cash out. The **My Portfolio** tab shows everything you own and your profit.
    * **🚗 Cars** is the car shop: Bicycle, Moped, Sedan, Pickup, Van, Sports Car, Limo and a Gold Hypercar. Buy one once and keep it forever. Press **SPAWN** and it appears on your driveway (or in front of you). Sit in it and drive with **W A S D**, jump to get out.
-6. **💻 Laptop:** walk up to the laptop in your house and use it to open the same apps in a big desktop view. Walk away or press **Log off** to close it.
+6. **💻 Laptop:** walk up to the laptop in your home and use it to open the same apps in a big desktop view. Walk away or press **Log off** to close it.
+7. **🏠 Homes app (laptop only):** a house-shopping app with 3D photos of every home. Buy one and you move in straight away. You keep every home you buy and can move back into any of them for free:
+
+   | Home | Price |
+   |------|-------|
+   | Garden Shed | Free |
+   | Starter Cabin | $2.5K |
+   | Cozy Bungalow (1 storey) | $25K |
+   | Two-Storey House | $250K |
+   | Big Family Home | $1.5M |
+   | Modern Villa (with a pool) | $12M |
+   | Grand Mansion | $100M |
+   | Billionaire Mega Mansion (helipad!) | $750M |
+
+   Homes are for show right now: they don't change your income.
 
 Your progress saves automatically, including your investments. With smart play it takes roughly 75 minutes to hit $1B.
 
@@ -68,7 +82,7 @@ The city is built by code when you press Play, so you won't see it in the editor
 1. Press **Play** (F5) in Studio.
 2. You spawn in the city plaza. Walk to a blue **FOR SALE** pad and step on it to claim that lot.
 3. Step on the free **Lemonade Pitcher** button.
-4. Wait a few seconds, then step on the gold **Cash Collector** pad. Your cash goes up on the top display and in the player list.
+4. Wait a few seconds until a 💵 icon appears above the lemonade stand, then walk up to the stand (or press **E**). Your cash goes up in the bar at the top of the screen and in the player list.
 5. To test with several players: **Test** tab → **Clients and Servers** → pick 2 players → **Start**. Each player can claim a different lot.
 
 ### 5. Turn on saving (optional, but needed to test saving)
@@ -108,6 +122,7 @@ Almost everything you'll want to tweak is in **`src/shared/Config.luau`** (the t
 * **Change when a business opens:** edit its `Unlock = { Stage = "...", ItemsOwned = 4 }`.
 * **More lots in the city:** raise `LotColumns` (there are 2 rows, so 3 columns = 6 lots).
 * **Stocks, crypto and NFTs** live in **`src/shared/MarketConfig.luau`**. Add a company by copying a line, change a `Base` price, or make something wilder with a bigger `Vol`. Same rule: don't rename an asset's `Id` once people have invested in it.
+* **Homes** live in **`src/shared/HomeConfig.luau`** (names, prices, the listing text). What each home looks like is in `HOUSE_SPECS` in `src/server/HomeBuilder.luau`.
 * **Don't rename an item's `Id`** once people have played, or they lose that item from their save. Renaming the `Name` is fine.
 
 ## How the code is organised
@@ -121,20 +136,23 @@ src/
     Format.luau             turns 2500000 into "$2.50M"
     MarketConfig.luau       the 30 stocks, crypto coins and NFTs, and how prices move
     VehicleConfig.luau      the cars in the car shop: prices, speeds, sizes
+    HomeConfig.luau         the homes you can buy, from the free shed to the mega mansion
   server/                   -> ServerScriptService.Server
     Main.server.luau        starting point: join/leave, claiming lots, loops
     Tycoon.luau             buying, upgrading, collecting cash
     CityBuilder.luau        roads, plaza, street lights, skyline
     PlotBuilder.luau        the claimable lots and their buttons
-    HomeBuilder.luau        your house, garage, driveway and the laptop workstation
+    HomeBuilder.luau        what every home looks like, the driveway and the laptop workstation
+    Homes.luau              buying homes and moving in (the Homes app's server side)
     LemonadeStand.luau      the one lemonade stand that grows with every upgrade
     Customers.luau          NPC customers who line up at your lemonade stand
     PlayerData.luau         DataStore load/save
     Market.luau             stock prices, buying and selling (server only)
     Garage.luau             buying cars, spawning and driving them
   client/                   -> StarterPlayerScripts.Client
-    Hud.client.luau         cash display, income, progress bar, pop-ups
+    Hud.client.luau         the slim bar at the top (cash, income, progress) and pop-ups
     Phone.client.luau       the phone, Bank, Market, Cars and the laptop desktop
+    HomesApp.luau           the 🏠 Homes app on the laptop
 ```
 
 File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` becomes a **LocalScript**, and plain `.luau` becomes a **ModuleScript**.

@@ -17,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local CityBuilder = require(script.Parent.CityBuilder)
 local Customers = require(script.Parent.Customers)
 local Garage = require(script.Parent.Garage)
+local Homes = require(script.Parent.Homes)
 local Market = require(script.Parent.Market)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
@@ -29,6 +30,7 @@ notifyEvent.Parent = ReplicatedStorage
 Tycoon.init(notifyEvent)
 Market.init(Tycoon, notifyEvent) -- the phone's stock market, crypto and NFTs
 Garage.init(Tycoon) -- the phone's car shop
+Homes.init(Tycoon, notifyEvent) -- the laptop's Homes app: buy and move into homes
 
 -- Build the world -----------------------------------------------------------
 
