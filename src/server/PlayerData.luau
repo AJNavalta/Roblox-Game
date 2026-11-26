@@ -58,9 +58,16 @@ local function sanitize(raw)
 		data.Pending = math.max(0, raw.Pending)
 	end
 	if type(raw.Owned) == "table" then
-		for itemId, owned in raw.Owned do
-			if owned == true and Config.ItemsById[itemId] then
-				data.Owned[itemId] = true
+		for itemId, level in raw.Owned do
+			local info = Config.ItemsById[itemId]
+			if info then
+				-- Older saves stored `true` instead of a level number
+				if level == true then
+					level = 1
+				end
+				if type(level) == "number" and level >= 1 then
+					data.Owned[itemId] = math.min(math.floor(level), info.Item.MaxLevel or 1)
+				end
 			end
 		end
 	end

@@ -139,14 +139,18 @@ local function update()
 
 	cashLabel.Text = Format.money(cash)
 	incomeLabel.Text = ("+%s/s   ·   %s waiting at your collector"):format(Format.money(income), Format.money(pending))
-	stageLabel.Text = ("Business %d/%d: %s"):format(stageIndex, #Config.Stages, stageName)
+	if player:GetAttribute("HasLot") then
+		stageLabel.Text = ("Business %d/%d: %s"):format(stageIndex, #Config.Stages, stageName)
+	else
+		stageLabel.Text = "Step on a blue FOR SALE pad to claim a lot!"
+	end
 
 	-- Log scale so the bar moves early on instead of sitting at 0% for ages
 	local progress = math.clamp(math.log10(cash + 1) / math.log10(Config.BillionaireGoal), 0, 1)
 	barFill.Size = UDim2.fromScale(progress, 1)
 end
 
-for _, attribute in { "Income", "Pending", "StageIndex", "StageName" } do
+for _, attribute in { "Income", "Pending", "StageIndex", "StageName", "HasLot" } do
 	player:GetAttributeChangedSignal(attribute):Connect(update)
 end
 

@@ -1,20 +1,30 @@
 # Become a Billionaire Tycoon
 
-A Roblox progression tycoon. Start with a lemonade stand and work your way up to a billion dollars:
+A Roblox progression tycoon set in **Billionaire City**. Claim a lot, start with a lemonade stand, and work your way up to a billion dollars:
 
-| # | Business | Items | Price range |
-|---|----------|-------|-------------|
-| 1 | 🍋 Lemonade Stand | Pitcher, Folding Table, Sign, Ice Cooler, Second Stand | Free – $550 |
-| 2 | 👕 Clothing Brand | Thrift Rack, Sewing Machine, T-Shirt Printer, Boutique, Designer Line | $1.5K – $60K |
-| 3 | 🚗 Car Dealership | Used Car Lot, Repair Garage, Dealership, Sports Showroom, Luxury Imports | $150K – $5M |
-| 4 | 📦 Dropshipping Empire | Online Store, Viral Ads, Warehouse, Van Fleet, Fulfillment Center | $12M – $200M |
-| 5 | 🟩 WOWVidia GPUs | Garage Chip Lab, Chip Factory, WOWForce GPU Line, AI Supercomputer, Mega HQ | $400M – $3.5B |
+| # | Business | Unlocks when you own | Price range |
+|---|----------|----------------------|-------------|
+| 1 | 🍋 Lemonade Stand (11 items) | open from the start | Free – $2K |
+| 2 | 👕 Clothing Brand | 6 Lemonade items | $2.5K – $110K |
+| 3 | 🚗 Car Dealership | 4 Clothing items | $150K – $5M |
+| 4 | 📦 Dropshipping Empire | 4 Car items | $12M – $200M |
+| 5 | 🟩 WOWVidia GPUs | 4 Dropshipping items | $400M – $3.5B |
 
 *(WOWVidia is a made-up parody company.)*
 
-**How to play:** walk onto a glowing button to buy that item (green = you can afford it, red = not yet). Every item earns money per second, which piles up on your gold **Cash Collector** pad. Step on the collector to bank it. Buy every item in a business to unlock the next one. Your progress saves automatically.
+**How to play:**
 
-With perfect play it takes roughly 80 minutes to hit $1B.
+1. You spawn in the plaza in the middle of the city. Walk to any lot with a blue **FOR SALE** pad and step on it. That lot is now yours.
+2. Walk onto glowing buttons to buy things. **Green** = you can afford it, **red** = not yet, **grey** = you need to buy something else first (the button tells you what).
+3. Every item earns money per second, which piles up on your gold **Cash Collector** pad. Step on it to bank the money.
+4. It's not a straight line. You choose your path:
+   * Several items are open at once, and some need others first (like a skill tree).
+   * Some items can be **upgraded** several times. Their building grows taller each level.
+   * **PICK ONE** buttons are choices. In the Lemonade Stand you pick *Pink Lemonade* (boosts all lemonade income) **or** a *Slushie Machine* (big flat income), not both.
+   * **Boost** items (glowing blocks) multiply the income of their whole business.
+   * You don't need to buy everything in a business to open the next one.
+
+Your progress saves automatically. With smart play it takes roughly 75 minutes to hit $1B.
 
 ---
 
@@ -26,8 +36,6 @@ You need: **Roblox Studio**, **VS Code** with the **Rojo** extension, and **Git*
 
 In VS Code: press `Ctrl+Shift+P` (`Cmd+Shift+P` on Mac) → **Git: Clone** → paste
 `https://github.com/AJNavalta/Roblox-Game` → pick a folder → **Open**.
-
-To try an unmerged branch (like a pull request), click the branch name in the bottom-left corner of VS Code and pick it from the list.
 
 ### 2. Start Rojo in VS Code
 
@@ -46,12 +54,15 @@ To try an unmerged branch (like a pull request), click the branch name in the bo
 
 While connected, every time you save a file in VS Code it updates in Studio instantly. **Edit code in VS Code, not in Studio**, or Rojo will overwrite your Studio edits.
 
+The city is built by code when you press Play, so you won't see it in the editor before that.
+
 ### 4. Test it
 
 1. Press **Play** (F5) in Studio.
-2. You spawn on your own plot. Step on the free **Lemonade Pitcher** button.
-3. Wait a few seconds, then step on the gold **Cash Collector** pad. Your cash goes up on the top display and in the player list.
-4. To test with several players: **Test** tab → **Clients and Servers** → pick 2 players → **Start**.
+2. You spawn in the city plaza. Walk to a blue **FOR SALE** pad and step on it to claim that lot.
+3. Step on the free **Lemonade Pitcher** button.
+4. Wait a few seconds, then step on the gold **Cash Collector** pad. Your cash goes up on the top display and in the player list.
+5. To test with several players: **Test** tab → **Clients and Servers** → pick 2 players → **Start**. Each player can claim a different lot.
 
 ### 5. Turn on saving (optional, but needed to test saving)
 
@@ -59,11 +70,17 @@ DataStores only work in a published place:
 
 1. **File → Publish to Roblox** (make a new game).
 2. **Home → Game Settings → Security** → turn on **Enable Studio Access to API Services** → Save.
-3. While you're in Game Settings, set **Places → Max Players** to **6** (the map has 6 plots).
+3. While you're in Game Settings, set **Places → Max Players** to **6** (the city has 6 lots).
 
 If saving is off you'll see a red pop-up when you join. The game still works, it just won't remember you.
 
 > Tip: to wipe everyone's progress while testing, change `DataStoreName` in `src/shared/Config.luau` (e.g. `_v1` → `_v2`).
+
+### Trying a pull request before you merge it
+
+1. In VS Code, click the branch name in the bottom-left corner and pick the PR's branch. If it isn't listed, run **Git: Fetch** from `Ctrl+Shift+P` first.
+2. Rojo picks up the changed files automatically. If the game is running, stop it and press Play again.
+3. Happy with it? Click **Merge pull request** on GitHub, then switch VS Code back to `main` and run **Git: Pull**.
 
 ### 6. Save the place file
 
@@ -73,11 +90,16 @@ Your code lives in Git, but the place (baseplate, lighting, game settings) lives
 
 ## Changing the game
 
-Almost everything you'll want to tweak is in **`src/shared/Config.luau`**:
+Almost everything you'll want to tweak is in **`src/shared/Config.luau`** (the top of that file explains every field):
 
 * **Prices and income:** change `Cost` and `Income` on any item.
-* **Add an item:** copy a line inside a stage's `Items` and give it a new unique `Id`.
-* **Add a whole business:** copy a stage block (`{ Id = ..., Name = ..., Color = ..., Items = { ... } }`) and paste it at the end of `Config.Stages`. The plot grows a new row automatically.
+* **Add an item:** copy a line inside a business's `Items` and give it a new unique `Id`. The lot makes room for it automatically.
+* **Make something need something else:** add `Requires = { "other_item_id" }`.
+* **Make it upgradeable:** add `MaxLevel = 3`.
+* **Make a pick-one choice:** give two or more items the same `Choice = "some_name"`.
+* **Make a booster:** add `Boost = 1.5` (+50% income for that business).
+* **Change when a business opens:** edit its `Unlock = { Stage = "...", ItemsOwned = 4 }`.
+* **More lots in the city:** raise `LotColumns` (there are 2 rows, so 3 columns = 6 lots).
 * **Don't rename an item's `Id`** once people have played, or they lose that item from their save. Renaming the `Name` is fine.
 
 ## How the code is organised
@@ -86,12 +108,14 @@ Almost everything you'll want to tweak is in **`src/shared/Config.luau`**:
 default.project.json        tells Rojo where each folder goes in Studio
 src/
   shared/                   -> ReplicatedStorage.Shared
-    Config.luau             all stages, items, prices, settings
+    Config.luau             all businesses, items, prices, settings
+    Progression.luau        rules: what can I buy, what unlocks, income math
     Format.luau             turns 2500000 into "$2.50M"
   server/                   -> ServerScriptService.Server
-    Main.server.luau        starting point: join/leave, income + autosave loops
-    Tycoon.luau             game rules: buy, collect, unlock stages
-    PlotBuilder.luau        builds each plot out of Parts from code
+    Main.server.luau        starting point: join/leave, claiming lots, loops
+    Tycoon.luau             buying, upgrading, collecting cash
+    CityBuilder.luau        roads, plaza, street lights, skyline
+    PlotBuilder.luau        the claimable lots and their buttons
     PlayerData.luau         DataStore load/save
   client/                   -> StarterPlayerScripts.Client
     Hud.client.luau         cash display, income, progress bar, pop-ups
@@ -101,6 +125,7 @@ File names matter to Rojo: `.server.luau` becomes a **Script**, `.client.luau` b
 
 ## Ideas for next steps
 
+* More choices and upgrades in the later businesses, like the Lemonade Stand has.
 * Swap the plain blocks for real models (a lemonade stand, a car lot, a GPU factory) built in Studio.
 * Rebirth/prestige: reset progress for a permanent income multiplier.
 * Gamepasses like 2x cash, and sound effects when buying or collecting.

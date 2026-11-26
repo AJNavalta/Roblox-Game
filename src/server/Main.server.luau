@@ -1,16 +1,19 @@
 --[[
 	Main.server.luau
 	The server's starting point. It wires the modules together:
-	  player joins  -> load save -> give them a plot -> start their tycoon
+	  server starts -> build the city and the empty lots
+	  player joins  -> load their save, spawn them in the plaza
+	  claims a lot  -> start their tycoon on it
 	  every second  -> pay income
 	  every minute  -> autosave
-	  player leaves -> save -> clear their plot
+	  player leaves -> save, put their lot back up for sale
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local CityBuilder = require(script.Parent.CityBuilder)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotBuilder = require(script.Parent.PlotBuilder)
 local Tycoon = require(script.Parent.Tycoon)
@@ -21,19 +24,35 @@ notifyEvent.Name = "TycoonNotify"
 notifyEvent.Parent = ReplicatedStorage
 Tycoon.init(notifyEvent)
 
--- Plot bookkeeping ----------------------------------------------------------
+-- Build the world -----------------------------------------------------------
 
-local plotsInUse = {} -- [plotIndex] = Player
-local plotOf = {} -- [Player] = plot
+CityBuilder.build()
 
-local function claimPlotIndex(player: Player): number?
-	for index = 1, Config.MaxPlots do
-		if not plotsInUse[index] then
-			plotsInUse[index] = player
-			return index
-		end
+local loadedData = {} -- [Player] = save data, from join until they leave
+local plotOf = {} -- [Player] = the lot they claimed
+
+local function claim(player: Player, plot)
+	if plot.Owner or plotOf[player] or not loadedData[player] then
+		return -- lot taken, they already have one, or their save is still loading
 	end
-	return nil
+
+	PlotBuilder.setOwner(plot, player)
+	plotOf[player] = plot
+	Tycoon.start(player, loadedData[player], plot)
+	notifyEvent:FireClient(player, "This lot is yours! Step on the buttons to build your empire.", "unlock")
+end
+
+local plots = {}
+for index = 1, PlotBuilder.LotCount do
+	local plot = PlotBuilder.build(index)
+	plots[index] = plot
+	Tycoon.attachPlot(plot)
+	plot.ClaimPad.Touched:Connect(function(hit)
+		local player = Tycoon.playerFromHit(hit)
+		if player then
+			claim(player, plot)
+		end
+	end)
 end
 
 -- Joining and leaving -------------------------------------------------------
@@ -43,17 +62,9 @@ local function onPlayerAdded(player: Player)
 	if not player.Parent then
 		return -- they left while we were loading
 	end
+	loadedData[player] = data
 
-	local index = claimPlotIndex(player)
-	if not index then
-		player:Kick("This server is full, please join another one!")
-		return
-	end
-
-	local plot = PlotBuilder.build(index, player)
-	plotOf[player] = plot
-	Tycoon.start(player, data, plot)
-
+	notifyEvent:FireClient(player, "Welcome to " .. Config.CityName .. "! Walk to a blue FOR SALE pad to claim a lot.", "info")
 	if not PlayerData.isSaving(player) then
 		notifyEvent:FireClient(player, "Saving is off right now. See the README to turn it on in Studio.", "error")
 	end
@@ -65,12 +76,12 @@ local function onPlayerRemoving(player: Player)
 		PlayerData.save(player, session.Data)
 	end
 	PlayerData.forget(player)
+	loadedData[player] = nil
 
 	local plot = plotOf[player]
 	if plot then
-		plotsInUse[plot.Index] = nil
 		plotOf[player] = nil
-		PlotBuilder.destroy(plot)
+		PlotBuilder.setOwner(plot, nil) -- back up for sale
 	end
 end
 

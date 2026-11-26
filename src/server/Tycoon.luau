@@ -1,13 +1,15 @@
 --[[
 	Tycoon.luau
-	The game rules: buying items, earning income, collecting cash, unlocking
-	stages. The server is the only one that changes money, so exploiters
-	can't just give themselves cash.
+	The game rules: buying and upgrading items, earning income, collecting
+	cash, unlocking businesses. The server is the only one that changes
+	money, so exploiters can't just give themselves cash.
 
-	Each player in the game has a "session":
+	Each player who has claimed a lot has a "session":
 	  session.Data    the saved stuff: Cash, Pending, Owned, Billionaire
-	  session.Plot    their plot, from PlotBuilder
+	  session.Plot    their lot, from PlotBuilder
 	  session.Income  dollars per second (worked out from Owned)
+
+	The "what can I buy" rules live in src/shared/Progression.luau.
 ]]
 
 local Players = game:GetService("Players")
@@ -15,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local PlotBuilder = require(script.Parent.PlotBuilder)
 
 local Tycoon = {}
@@ -24,6 +27,7 @@ local notifyEvent: RemoteEvent? = nil
 
 local AFFORDABLE_COLOR = Color3.fromRGB(60, 220, 90)
 local TOO_EXPENSIVE_COLOR = Color3.fromRGB(220, 60, 60)
+local NEEDS_COLOR = Color3.fromRGB(120, 120, 130)
 local TOUCH_COOLDOWN = 1 -- seconds before the same pad reacts again
 
 -- Helpers -------------------------------------------------------------------
@@ -34,50 +38,12 @@ local function notify(player: Player, text: string, kind: string?)
 	end
 end
 
-local function isStageComplete(data, stage): boolean
-	for _, item in stage.Items do
-		if not data.Owned[item.Id] then
-			return false
-		end
-	end
-	return true
-end
-
-local function isStageUnlocked(data, stageIndex: number): boolean
-	if stageIndex <= 1 then
-		return true
-	end
-	return isStageComplete(data, Config.Stages[stageIndex - 1])
-end
-
-local function currentStageIndex(data): number
-	local index = 1
-	for i = 2, #Config.Stages do
-		if isStageUnlocked(data, i) then
-			index = i
-		else
-			break
-		end
-	end
-	return index
-end
-
-local function computeIncome(data): number
-	local total = 0
-	for itemId in data.Owned do
-		local info = Config.ItemsById[itemId]
-		if info then
-			total += info.Item.Income
-		end
-	end
-	return total
-end
-
 -- Which player (if any) touched this part?
 local function playerFromHit(hit: BasePart): Player?
 	local character = hit:FindFirstAncestorOfClass("Model")
 	return character and Players:GetPlayerFromCharacter(character)
 end
+Tycoon.playerFromHit = playerFromHit
 
 -- Stops a pad from firing 30 times a second while you stand on it.
 local function cooldownReady(session, key: string): boolean
@@ -103,15 +69,38 @@ local function moveCharacterToPlot(character: Model, plot)
 	end)
 end
 
+local function unlockedStages(owned)
+	local unlocked = {}
+	for index = 1, #Config.Stages do
+		unlocked[index] = Progression.isStageUnlocked(owned, index)
+	end
+	return unlocked
+end
+
+local function buttonText(info, status, detail, level): string
+	local item = info.Item
+	if status == "needs" then
+		return item.Name .. "\nNeeds: " .. table.concat(detail, ", ")
+	end
+	local price = if detail == 0 then "FREE" else Format.money(detail)
+	if level > 0 then
+		return ("Upgrade %s → Lv%d\n%s"):format(item.Name, level + 1, price)
+	elseif item.Choice then
+		return "PICK ONE: " .. item.Name .. "\n" .. price
+	end
+	return item.Name .. "\n" .. price
+end
+
 -- Pushes the latest numbers to leaderstats, the HUD, signs and buttons.
 local function refresh(session)
 	local data = session.Data
+	local owned = data.Owned
 	local plot = session.Plot
 	local player = session.Player
 
 	session.CashValue.Value = math.floor(data.Cash)
 
-	local stageIndex = currentStageIndex(data)
+	local stageIndex = Progression.highestUnlockedStage(owned)
 	player:SetAttribute("Income", session.Income)
 	player:SetAttribute("Pending", math.floor(data.Pending))
 	player:SetAttribute("StageIndex", stageIndex)
@@ -120,24 +109,29 @@ local function refresh(session)
 	plot.CollectorLabel.Text = "Cash Collector\n" .. Format.money(data.Pending)
 
 	for index, stage in Config.Stages do
-		local unlocked = isStageUnlocked(data, index)
+		local unlocked, have, need = Progression.stageUnlock(owned, index)
 		local label = plot.StageLabels[index]
-		if isStageComplete(data, stage) then
-			label.Text = stage.Name .. "  ✔"
-		elseif unlocked then
-			label.Text = stage.Name
+		if unlocked then
+			label.Text = ("%s\n+%s/s"):format(stage.Name, Format.money(Progression.stageIncome(owned, stage)))
 		else
-			label.Text = "🔒 " .. stage.Name
+			local fromStage = Config.Stages[Config.StageIndexById[stage.Unlock.Stage]]
+			label.Text = ("🔒 %s\nOwn %d %s items (%d/%d)"):format(stage.Name, need, fromStage.Name, have, need)
 		end
+	end
 
-		for _, item in stage.Items do
-			local button = plot.Buttons[item.Id]
-			if unlocked and not data.Owned[item.Id] then
-				button.Part.Parent = plot.ButtonsFolder
-				button.Part.Color = if data.Cash >= item.Cost then AFFORDABLE_COLOR else TOO_EXPENSIVE_COLOR
+	for itemId, button in plot.Buttons do
+		local info = Config.ItemsById[itemId]
+		local status, detail = Progression.status(owned, info)
+		if status == "available" or status == "needs" then
+			button.Part.Parent = plot.ButtonsFolder
+			button.Label.Text = buttonText(info, status, detail, owned[itemId] or 0)
+			if status == "needs" then
+				button.Part.Color = NEEDS_COLOR
 			else
-				button.Part.Parent = nil
+				button.Part.Color = if data.Cash >= detail then AFFORDABLE_COLOR else TOO_EXPENSIVE_COLOR
 			end
+		else
+			button.Part.Parent = nil
 		end
 	end
 end
@@ -158,6 +152,28 @@ function Tycoon.init(remote: RemoteEvent)
 	notifyEvent = remote
 end
 
+-- Hooks up a lot's buttons and collector once, when the server starts.
+-- They only respond to the lot's current owner.
+function Tycoon.attachPlot(plot)
+	for itemId, button in plot.Buttons do
+		button.Part.Touched:Connect(function(hit)
+			local player = playerFromHit(hit)
+			local session = player and sessions[player]
+			if session and plot.Owner == player and cooldownReady(session, itemId) then
+				Tycoon.purchase(player, itemId)
+			end
+		end)
+	end
+
+	plot.Collector.Touched:Connect(function(hit)
+		local player = playerFromHit(hit)
+		local session = player and sessions[player]
+		if session and plot.Owner == player and cooldownReady(session, "collector") then
+			Tycoon.collect(player)
+		end
+	end)
+end
+
 function Tycoon.purchase(player: Player, itemId: string)
 	local session = sessions[player]
 	local info = Config.ItemsById[itemId]
@@ -167,27 +183,44 @@ function Tycoon.purchase(player: Player, itemId: string)
 
 	local data = session.Data
 	local item = info.Item
-	if data.Owned[itemId] or not isStageUnlocked(data, info.StageIndex) then
+	local status, detail = Progression.status(data.Owned, info)
+
+	if status == "needs" then
+		notify(player, "Buy " .. table.concat(detail, " and ") .. " first!", "error")
+		return
+	elseif status == "chosen_other" then
+		notify(player, "You already picked " .. detail .. " instead.", "error")
+		return
+	elseif status ~= "available" then
 		return
 	end
 
-	if data.Cash < item.Cost then
-		notify(player, "You need " .. Format.money(item.Cost - data.Cash) .. " more for " .. item.Name, "error")
+	local cost = detail
+	if data.Cash < cost then
+		notify(player, "You need " .. Format.money(cost - data.Cash) .. " more for " .. item.Name, "error")
 		return
 	end
 
-	data.Cash -= item.Cost
-	data.Owned[itemId] = true
-	session.Income = computeIncome(data)
-	PlotBuilder.addItemVisual(session.Plot, info)
-	notify(player, "Bought " .. item.Name .. "! +" .. Format.money(item.Income) .. "/s", "success")
+	local unlockedBefore = unlockedStages(data.Owned)
+	local newLevel = (data.Owned[itemId] or 0) + 1
 
-	if isStageComplete(data, info.Stage) then
-		local nextStage = Config.Stages[info.StageIndex + 1]
-		if nextStage then
-			notify(player, "New business unlocked: " .. nextStage.Name .. "!", "unlock")
-		else
-			notify(player, "You own every business. Absolute tycoon!", "unlock")
+	data.Cash -= cost
+	data.Owned[itemId] = newLevel
+	session.Income = Progression.totalIncome(data.Owned)
+	PlotBuilder.setItemVisual(session.Plot, info, newLevel)
+
+	if newLevel > 1 then
+		notify(player, ("Upgraded %s to Lv%d!"):format(item.Name, newLevel), "success")
+	elseif item.Boost then
+		notify(player, ("Bought %s! %s income x%g"):format(item.Name, info.Stage.Name, item.Boost), "success")
+	else
+		notify(player, "Bought " .. item.Name .. "! +" .. Format.money(item.Income) .. "/s", "success")
+	end
+
+	local unlockedAfter = unlockedStages(data.Owned)
+	for index, stage in Config.Stages do
+		if unlockedAfter[index] and not unlockedBefore[index] then
+			notify(player, "New business unlocked: " .. stage.Name .. "!", "unlock")
 		end
 	end
 
@@ -221,14 +254,13 @@ function Tycoon.tick(deltaSeconds: number)
 	end
 end
 
--- Sets up a player who just joined: leaderstats, their owned buildings, and
--- the touch pads on their plot.
+-- Starts a player's tycoon on the lot they just claimed.
 function Tycoon.start(player: Player, data, plot)
 	local session = {
 		Player = player,
 		Data = data,
 		Plot = plot,
-		Income = computeIncome(data),
+		Income = Progression.totalIncome(data.Owned),
 		Cooldowns = {},
 	}
 
@@ -241,36 +273,26 @@ function Tycoon.start(player: Player, data, plot)
 	session.CashValue = cash
 
 	-- Rebuild everything they bought in earlier visits
-	for itemId in data.Owned do
+	for itemId, level in data.Owned do
 		local info = Config.ItemsById[itemId]
 		if info then
-			PlotBuilder.addItemVisual(plot, info)
+			PlotBuilder.setItemVisual(plot, info, level)
 		end
 	end
-
-	for itemId, button in plot.Buttons do
-		button.Part.Touched:Connect(function(hit)
-			if playerFromHit(hit) == player and cooldownReady(session, itemId) then
-				Tycoon.purchase(player, itemId)
-			end
-		end)
-	end
-
-	plot.Collector.Touched:Connect(function(hit)
-		if playerFromHit(hit) == player and cooldownReady(session, "collector") then
-			Tycoon.collect(player)
-		end
-	end)
 
 	player.CharacterAdded:Connect(function(character)
-		moveCharacterToPlot(character, plot)
+		if sessions[player] then
+			moveCharacterToPlot(character, plot)
+		end
 	end)
-	if player.Character then
-		moveCharacterToPlot(player.Character, plot)
-	end
 
 	sessions[player] = session
+	player:SetAttribute("HasLot", true)
 	refresh(session)
+end
+
+function Tycoon.hasSession(player: Player): boolean
+	return sessions[player] ~= nil
 end
 
 -- Removes the player's session and returns it (so Main can save + clean up).
